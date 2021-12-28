@@ -1,4 +1,5 @@
 import {WebpackConfigBuilder} from "../../../lib/Builders/WebpackConfigBuilder";
+import MiniCssExtractPlugin from "mini-css-extract-plugin";
 
 
 /**
@@ -119,3 +120,56 @@ test('We should be able to set output path', () => {
   expect(builder.build().output.path).toEqual('/dist');
 });
 
+/**
+ * Plugin support
+ */
+describe('Plugins support', () => {
+  /**
+   * Tests that we have defaults plugins added to the final configuration object
+   */
+  test('We should have default plugins', () => {
+    const builder = new WebpackConfigBuilder();
+    // By default it should have one plugin
+    expect(
+      builder.build().plugins.filter(plugin => plugin.constructor.name === 'MiniCssExtractPlugin').length,
+      'We should find the default MiniCSSExtractPlugin plugin in the config'
+    ).toEqual(1);
+  
+  });
+  
+  /**
+   * Test that we are able to disable the defaults plugins
+   */
+  test('We should be able to disable default plugins', () => {
+    // Disable de default plugins
+    const builder = new WebpackConfigBuilder();
+    builder.enableDefaultPlugins(false);
+  
+    expect(
+      builder.build().plugins.filter(plugin => plugin.constructor.name === 'MiniCssExtractPlugin').length,
+      'We should not find the default MiniCSSExtractPlugin plugin in the config'
+    ).toEqual(0);
+  });
+  
+  /**
+   * Test that we are able to add new plugins
+   */
+  test('We should be able to add plugins', () => {
+    const builder = new WebpackConfigBuilder();
+    builder.addPlugin({
+      options: {
+        filename: '[name].css',
+      },
+      init: (options) => new MiniCssExtractPlugin(options),
+    });
+    
+    builder.enableDefaultPlugins(false);
+    const config = builder.build();
+    
+    expect(
+      config.plugins.filter(plugin => plugin.constructor.name === 'MiniCssExtractPlugin').length,
+      'We should have a MiniCSSExtractPlugin in the output configuration'
+    ).toEqual(1);
+  });
+  
+});

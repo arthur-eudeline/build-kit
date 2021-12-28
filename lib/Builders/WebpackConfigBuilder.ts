@@ -6,7 +6,11 @@ import defaultConfig, {
   defaultImagesConfig,
   defaultJavaScriptConfig
 } from '../../ConfigurationFiles/Webpack/DefaultConfig';
-import {WebpackConfiguration, WebpackModuleRules} from "../../@types/webpack";
+import {WebpackConfiguration, WebpackModuleRules, WebpackPluginInitializer} from "../../@types/webpack";
+import DuplicatePackageCheckerPlugin from 'duplicate-package-checker-webpack-plugin';
+import MiniCssExtractPlugin from "mini-css-extract-plugin";
+import {cloneDeep} from 'lodash';
+
 
 /**
  * A class helper to build WebPack Configuration files
@@ -23,28 +27,67 @@ export class WebpackConfigBuilder {
    * Holds the Webpack modules rules that will define how files are handled
    * @private
    */
-  private readonly moduleRules: WebpackModuleRules;
+  private readonly moduleRules:WebpackModuleRules;
+  
+  /**
+   * Contains the default plugins added to the configuration
+   * Use WebpackConfigBuilder.enableDefaultPlugins() to disable them
+   * @private
+   */
+  private readonly defaultPlugins:{
+    MiniCssExtractPlugin:WebpackPluginInitializer<MiniCssExtractPlugin.PluginOptions>
+    [key:string]:WebpackPluginInitializer,
+  };
+  
+  /**
+   * Allow or disallow the use of default plugins
+   * @private
+   */
+  private defaultPluginsEnabled:boolean = true;
+  
+  /**
+   * Holds the custom plugins later added to the configuration by the user
+   * through WebpackConfigBuilder.addPlugin()
+   * @private
+   */
+  private readonly plugins:WebpackPluginInitializer[] = [];
   
   /**
    * Defines if filenames will have a unique hash in their name or not
    *
    * @private
    */
-  private hashFilenames:boolean = true;
+  private hashFilenamesEnabled:boolean = true;
   
   
   /**
    * The builder constructor
    */
   public constructor () {
-    this.configuration = defaultConfig;
+    this.configuration = cloneDeep(defaultConfig);
     
     this.moduleRules = {
-      javaScript : defaultJavaScriptConfig,
-      css: defaultCSSConfig,
-      font : defaultFontConfig,
-      images : defaultImagesConfig,
-      icons: defaultIconsConfig,
+      javaScript: cloneDeep(defaultJavaScriptConfig),
+      css: cloneDeep(defaultCSSConfig),
+      font: cloneDeep(defaultFontConfig),
+      images: cloneDeep(defaultImagesConfig),
+      icons: cloneDeep(defaultIconsConfig),
+    };
+    
+    
+    this.defaultPlugins = {
+      // Remove duplicate assets code
+      DuplicatePackageCheckerPlugin : {
+        init: () => new DuplicatePackageCheckerPlugin()
+      },
+      
+      // Extract CSS content into different files
+      MiniCssExtractPlugin: {
+        options: {
+          filename: "[name].[contenthash].min.css"
+        },
+        init: (options:MiniCssExtractPlugin.PluginOptions) => new MiniCssExtractPlugin(options),
+      },
     };
   }
   
@@ -70,50 +113,77 @@ export class WebpackConfigBuilder {
   
   
   /**
-   * Whether to generate hash on file names or not
+   * Adds a plugin to the webpack configuration
    *
-   * @param enabled
+   * @param pluginInitializer
    */
-  public enableFilenamesHash (enabled:boolean):WebpackConfigBuilder {
-    this.hashFilenames = enabled;
+  public addPlugin (pluginInitializer:WebpackPluginInitializer):WebpackConfigBuilder {
+    this.plugins.push(pluginInitializer);
     
     return this;
   }
   
   
   /**
-   * Apply the filename configuration according to this.hashFilenames parameter
+   * Controls default plugin addition to the configuration
+   * @param enable
+   */
+  public enableDefaultPlugins (enable:boolean):WebpackConfigBuilder {
+    this.defaultPluginsEnabled = enable;
+    return this;
+  }
+  
+  
+  /**
+   * Whether to generate hash on file names or not
+   *
+   * @param enabled
+   */
+  public enableFilenamesHash (enabled:boolean):WebpackConfigBuilder {
+    this.hashFilenamesEnabled = enabled;
+    
+    return this;
+  }
+  
+  
+  /**
+   * Apply the filename configuration according to this.hashFilenamesEnabled parameter
    *
    * @private
    */
   private applyFilenames ():WebpackConfigBuilder {
     // Chunks
-    this.configuration.output.chunkFilename = this.hashFilenames
+    this.configuration.output.chunkFilename = this.hashFilenamesEnabled
       ? "[id].[contenthash].chunk.min.js"
       : "[id].[name].chunk.js";
     
     // Filenames
-    this.configuration.output.filename = this.hashFilenames
+    this.configuration.output.filename = this.hashFilenamesEnabled
       ? "[name].[contenthash].min.js"
       : "[name].js";
     
     // Assets
-    this.configuration.output.assetModuleFilename = this.hashFilenames
+    this.configuration.output.assetModuleFilename = this.hashFilenamesEnabled
       ? "[name].[contenthash].asset.min[ext]"
       : "[name].[hash].asset[ext]";
     
+    // CSS
+    this.defaultPlugins.MiniCssExtractPlugin.options.filename = this.hashFilenamesEnabled
+      ? "[name].[contenthash].min.css"
+      : "[name].css";
+    
     // Fonts
-    this.moduleRules.font.generator.filename = this.hashFilenames
+    this.moduleRules.font.generator.filename = this.hashFilenamesEnabled
       ? "fonts/[name].[contenthash][ext]"
       : "fonts/[name][ext]";
     
     // Icons
-    this.moduleRules.icons.generator.filename = this.hashFilenames
+    this.moduleRules.icons.generator.filename = this.hashFilenamesEnabled
       ? "icons/[name].[contenthash][ext]"
       : "icons/[name][ext]";
-      
+    
     // Images
-    this.moduleRules.images.generator.filename = this.hashFilenames
+    this.moduleRules.images.generator.filename = this.hashFilenamesEnabled
       ? "img/[name].[contenthash][ext]"
       : "img/[name][ext]";
     
@@ -142,7 +212,7 @@ export class WebpackConfigBuilder {
   /**
    * Gets the different modules rules that will be later applied on the webpack configuration object
    */
-  public getModulesRules() : WebpackModuleRules {
+  public getModulesRules ():WebpackModuleRules {
     return this.moduleRules;
   }
   
@@ -151,19 +221,42 @@ export class WebpackConfigBuilder {
    * Applies all the module rules to the real webpack configuration
    * @private
    */
-  private applyModulesRules() : WebpackConfigBuilder {
+  private applyModulesRules ():WebpackConfigBuilder {
     this.configuration.module.rules = Object.values(this.getModulesRules());
     
     return this;
   }
   
+  
+  /**
+   * Adds the default plugins and regular plugins to the configuration
+   *
+   * @private
+   */
+  private applyPlugins ():WebpackConfigBuilder {
+    const plugins:WebpackPluginInitializer[] = [
+      ...(this.defaultPluginsEnabled ? Object.values(this.defaultPlugins) : []),
+      ...this.plugins
+    ];
+    
+    for (const initializer of plugins) {
+      this.configuration.plugins.push(initializer.init(initializer.options));
+    }
+    
+    return this;
+  }
+  
+  
   /**
    * Gets the real webpack configuration
    */
-  public build (): WebpackConfiguration {
+  public build ():WebpackConfiguration {
     this
-      // Compute filename configuration according to this.hashFilenames
+      // Compute filename configuration according to this.hashFilenamesEnabled
       .applyFilenames()
+      
+      // Adds default plugins
+      .applyPlugins()
       // Adds the rules
       .applyModulesRules();
     

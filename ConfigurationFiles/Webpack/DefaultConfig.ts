@@ -6,7 +6,6 @@ const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 // const webpack = require("webpack");
 // const LodashModuleReplacementPlugin = require('lodash-webpack-plugin');
 // const AssetsPlugin = require('assets-webpack-plugin');
-const DuplicatePackageCheckerPlugin = require('duplicate-package-checker-webpack-plugin');
 const CSSMinimizer = require('css-minimizer-webpack-plugin');
 
 export const defaultJavaScriptConfig:WebpackModuleRule = {
@@ -107,19 +106,7 @@ const defaultConfig:Configuration = {
   
   // Plugins
   plugins: [
-    // Remove duplicate assets code
-    new DuplicatePackageCheckerPlugin(),
-
-    // Reduce Lodash size
-    // new LodashModuleReplacementPlugin(),
-
-    // Extract CSS content into different files
-    // new MiniCssExtractPlugin({
-    //   filename: production
-    //     ? "[name].[contenthash].min.css"
-    //     : "[name].css",
-    // }),
-
+    
     // Defines a ENV variable
     // new webpack.DefinePlugin({
     //   DEBUG: !production,
