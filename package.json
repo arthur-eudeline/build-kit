@@ -1,0 +1,14 @@
+{
+  "name": "build-kit",
+  "version": "0.0.0",
+  "description": "A package that include several tools to help improve your project quality",
+  "main": "lib/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Arthur Eudeline <contact@arthur-eudeline.com>",
+  "license": "ISC",
+  "dependencies": {
+    "typescript": "^4.5.4"
+  }
+}
