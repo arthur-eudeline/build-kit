@@ -33,3 +33,76 @@ test('Adds entries correctly', () => {
     'output-sub-dir/output-file': 'output-sub-dir/output-file'
   })
 });
+
+/**
+ * Checks that all filenames are by default hashed
+ */
+test('Files names should be hashed by default', () => {
+  const config = (new WebpackConfigBuilder()).build();
+  
+  // Assets
+  expect(config.output.assetModuleFilename)
+    .toContain('[contenthash]');
+  
+  // Chunk
+  expect(config.output.chunkFilename)
+    .toContain('[contenthash]');
+  
+  // Filename
+  expect(config.output.filename)
+    .toContain('[contenthash]');
+  
+  // Fonts
+  const fontFilename = config.module.rules
+    .filter((rule) => rule.name === 'Font')[0].generator.filename;
+  
+  expect(fontFilename, 'Fonts should be located in sub folders').toMatch(/^fonts\//);
+  expect(fontFilename).toContain('[contenthash]');
+  
+  // Icons
+  const iconsFilename = config.module.rules
+    .filter((rule) => rule.name === 'Icons')[0].generator.filename;
+  
+  expect(iconsFilename, 'Icons should be located in `icons` sub folder').toMatch(/^icons\//);
+  expect(iconsFilename).toContain('[contenthash]');
+  
+  // Images
+  const imagesFilename = config.module.rules
+    .filter((rule) => rule.name === 'Images')[0].generator.filename;
+  
+  expect(imagesFilename, 'Images should be located in `img` sub folder').toMatch(/^img\//);
+  expect(imagesFilename).toContain('[contenthash]');
+});
+
+/**
+ * Checks that file names are not hashed anymore
+ */
+test('We should be able to turn off filename hashing', () => {
+  // Enabled by default
+  expect((new WebpackConfigBuilder()).build().output.filename)
+    .toContain('[contenthash]');
+  
+  // We disable the filename hashing
+  const config = (new WebpackConfigBuilder())
+    .enableFilenamesHash(false)
+    .build();
+  
+  // We should not have "contenthash" placeholder in filenames
+  expect(config.output.filename)
+    .not.toContain('[contenthash]');
+  
+  // Fonts
+  const fontFilename = config.module.rules
+    .filter((rule) => rule.name === 'Font')[0].generator.filename;
+  expect(fontFilename).not.toContain('[contenthash]');
+  
+  // Icons
+  const iconsFilename = config.module.rules
+    .filter((rule) => rule.name === 'Icons')[0].generator.filename;
+  expect(iconsFilename).not.toContain('[contenthash]');
+  
+  // Images
+  const imagesFilename = config.module.rules
+    .filter((rule) => rule.name === 'Images')[0].generator.filename;
+  expect(imagesFilename).not.toContain('[contenthash]');
+});

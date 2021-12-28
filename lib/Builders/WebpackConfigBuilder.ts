@@ -1,13 +1,29 @@
 import {Configuration} from 'webpack';
-import defaultConfig from '../../ConfigurationFiles/Webpack/DefaultConfig';
-
+import defaultConfig, {
+  defaultCSSConfig,
+  defaultFontConfig,
+  defaultIconsConfig,
+  defaultImagesConfig,
+  defaultJavaScriptConfig
+} from '../../ConfigurationFiles/Webpack/DefaultConfig';
+import {WebpackConfiguration, WebpackModuleRules} from "../../@types/webpack";
 
 /**
  * A class helper to build WebPack Configuration files
  */
 export class WebpackConfigBuilder {
   
+  /**
+   * Holds the Webpack configuration that will be manipulated
+   * @private
+   */
   private readonly configuration:Configuration;
+  
+  /**
+   * Holds the Webpack modules rules that will define how files are handled
+   * @private
+   */
+  private readonly moduleRules: WebpackModuleRules;
   
   /**
    * Defines if filenames will have a unique hash in their name or not
@@ -22,6 +38,14 @@ export class WebpackConfigBuilder {
    */
   public constructor () {
     this.configuration = defaultConfig;
+    
+    this.moduleRules = {
+      javaScript : defaultJavaScriptConfig,
+      css: defaultCSSConfig,
+      font : defaultFontConfig,
+      images : defaultImagesConfig,
+      icons: defaultIconsConfig,
+    };
   }
   
   
@@ -63,20 +87,35 @@ export class WebpackConfigBuilder {
    * @private
    */
   private applyFilenames ():WebpackConfigBuilder {
-    // Add HASH to file name to reduce problems of CDN and browser cache
+    // Chunks
     this.configuration.output.chunkFilename = this.hashFilenames
       ? "[id].[contenthash].chunk.min.js"
       : "[id].[name].chunk.js";
     
-    // Add HASH to file name to reduce problems of CDN and browser cache
+    // Filenames
     this.configuration.output.filename = this.hashFilenames
       ? "[name].[contenthash].min.js"
       : "[name].js";
     
-    // Add HASH to file name to reduce problems of CDN and browser cache
+    // Assets
     this.configuration.output.assetModuleFilename = this.hashFilenames
       ? "[name].[contenthash].asset.min[ext]"
       : "[name].[hash].asset[ext]";
+    
+    // Fonts
+    this.moduleRules.font.generator.filename = this.hashFilenames
+      ? "fonts/[name].[contenthash][ext]"
+      : "fonts/[name][ext]";
+    
+    // Icons
+    this.moduleRules.icons.generator.filename = this.hashFilenames
+      ? "icons/[name].[contenthash][ext]"
+      : "icons/[name][ext]";
+      
+    // Images
+    this.moduleRules.images.generator.filename = this.hashFilenames
+      ? "img/[name].[contenthash][ext]"
+      : "img/[name][ext]";
     
     return this;
   }
@@ -100,11 +139,35 @@ export class WebpackConfigBuilder {
   }
   
   
-  public build ():Configuration {
+  /**
+   * Gets the different modules rules that will be later applied on the webpack configuration object
+   */
+  public getModulesRules() : WebpackModuleRules {
+    return this.moduleRules;
+  }
+  
+  
+  /**
+   * Applies all the module rules to the real webpack configuration
+   * @private
+   */
+  private applyModulesRules() : WebpackConfigBuilder {
+    this.configuration.module.rules = Object.values(this.getModulesRules());
+    
+    return this;
+  }
+  
+  /**
+   * Gets the real webpack configuration
+   */
+  public build (): WebpackConfiguration {
     this
       // Compute filename configuration according to this.hashFilenames
-      .applyFilenames();
+      .applyFilenames()
+      // Adds the rules
+      .applyModulesRules();
     
+    // @ts-ignore
     return this.configuration;
   }
   
