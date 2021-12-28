@@ -106,3 +106,16 @@ test('We should be able to turn off filename hashing', () => {
     .filter((rule) => rule.name === 'Images')[0].generator.filename;
   expect(imagesFilename).not.toContain('[contenthash]');
 });
+
+/**
+ * Checks the output path
+ */
+test('We should be able to set output path', () => {
+  const builder = new WebpackConfigBuilder();
+  expect(builder.build().output.path).toBe(undefined);
+  
+  builder.setOutputPath('/dist');
+  
+  expect(builder.build().output.path).toEqual('/dist');
+});
+
