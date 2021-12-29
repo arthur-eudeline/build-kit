@@ -105,13 +105,6 @@ const defaultConfig:Configuration = {
   
   // Plugins
   plugins: [
-    
-    // Defines a ENV variable
-    // new webpack.DefinePlugin({
-    //   DEBUG: !production,
-    //   PRODUCTION: production,
-    // }),
-
     // Generate an "assets.json" file required by the asset system
     // new AssetsPlugin({
     //   path: path.resolve(__dirname, './src/Assets/dist/'),
@@ -159,28 +152,13 @@ const defaultConfig:Configuration = {
     //   },
     // }),
   ],
-
-  resolve: {
-    extensions: ['.ts', '.js'],
-    fallback: {"path": false, "os": false, 'fs': false,},
-    alias: {
-      'lodash-es': 'lodash',
-      'lodash.topath': 'lodash/toPath',
-      'lodash.toarray': 'toPath\toArray'
-    }
-  },
+  
   
   // Entry files
   entry: {},
   
   // Output configuration
   output: {
-    // Remove the old files
-    clean: {
-      keep (asset) {
-        return asset.includes('assets.json');
-      },
-    },
     
     // Add HASH to file name to reduce problems of CDN and browser cache
     chunkFilename: "[id].[contenthash].chunk.min.js",

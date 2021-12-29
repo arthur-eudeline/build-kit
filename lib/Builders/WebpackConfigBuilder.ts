@@ -1,3 +1,5 @@
+// noinspection JSUnusedGlobalSymbols
+
 import {Configuration, DefinePlugin} from 'webpack';
 import defaultConfig, {
   defaultCSSConfig,
@@ -62,6 +64,12 @@ export class WebpackConfigBuilder {
   private optimizationEnabled:boolean = true;
   
   /**
+   * Defines if Webpack will delete previous files when building new ones
+   * @private
+   */
+  private outputCleaningEnabled:boolean = true;
+  
+  /**
    * Holds the custom plugins later added to the configuration by the user
    * through WebpackConfigBuilder.addPlugin()
    * @private
@@ -74,6 +82,12 @@ export class WebpackConfigBuilder {
    * @private
    */
   private hashFilenamesEnabled:boolean = true;
+  
+  /**
+   * Holds the callback that prevent assets to be cleaned by Webpack
+   * @private
+   */
+  private keepAssetsCB:(fileName:string) => boolean;
   
   
   /**
@@ -172,6 +186,28 @@ export class WebpackConfigBuilder {
     return this;
   }
   
+  
+  /**
+   * Enable or disable the deletion of previous webpack generated output files
+   * @param enable
+   */
+  public enableOutputCleaning(enable:boolean):WebpackConfigBuilder {
+    this.outputCleaningEnabled = enable;
+    return this;
+  }
+  
+  
+  /**
+   * Sets a callback used to define if an asset will be cleaned or not by webpack.
+   * If the callback return true, then the asset will NOT be deleted.
+   *
+   * @param keepAssets
+   */
+  public setAssetCleaningWhitelist( keepAssets: (fileName:string) => boolean):WebpackConfigBuilder {
+    this.keepAssetsCB = keepAssets;
+    
+    return this;
+  }
   
   /**
    * Whether to generate hash on file names or not
@@ -320,6 +356,23 @@ export class WebpackConfigBuilder {
     return this;
   }
   
+  
+  /**
+   * Adds the asset cleaning configuration to the real webpack configuration
+   * @private
+   */
+  private applyAssetCleaning():WebpackConfigBuilder {
+    if (!this.outputCleaningEnabled)
+      return this;
+    
+    this.configuration.output.clean = {
+      keep: this.keepAssetsCB
+    };
+    
+    return this;
+  }
+  
+  
   /**
    * Gets the real webpack configuration
    */
@@ -327,6 +380,8 @@ export class WebpackConfigBuilder {
     this
       // Compute filename configuration according to this.hashFilenamesEnabled
       .applyFilenames()
+      // Adds the asset cleaning configuration
+      .applyAssetCleaning()
       // WARNING : MUST COME AFTER APPLY FILENAMES, Adds default plugins
       .applyPlugins()
       // Adds the optimization settings
