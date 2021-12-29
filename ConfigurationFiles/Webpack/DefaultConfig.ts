@@ -6,7 +6,6 @@ const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 // const webpack = require("webpack");
 // const LodashModuleReplacementPlugin = require('lodash-webpack-plugin');
 // const AssetsPlugin = require('assets-webpack-plugin');
-const CSSMinimizer = require('css-minimizer-webpack-plugin');
 
 export const defaultJavaScriptConfig:WebpackModuleRule = {
   name: 'JavaScript',
@@ -172,22 +171,22 @@ const defaultConfig:Configuration = {
   },
   
   // File content minimization
-  optimization: {
-    minimize: true,
-    minimizer: [
-      `...`,
-      new CSSMinimizer({
-        minimizerOptions: {
-          preset: [
-            "default",
-            {
-              discardComments: { removeAll: true },
-            },
-          ],
-        },
-      })
-    ]
-  },
+  // optimization: {
+  //   minimize: true,
+  //   minimizer: [
+  //     `...`,
+  //     new CSSMinimizer({
+  //       minimizerOptions: {
+  //         preset: [
+  //           "default",
+  //           {
+  //             discardComments: { removeAll: true },
+  //           },
+  //         ],
+  //       },
+  //     })
+  //   ]
+  // },
   
   // Entry files
   entry: {},

@@ -1,5 +1,6 @@
 import {WebpackConfigBuilder} from "../../../lib/Builders/WebpackConfigBuilder";
 import MiniCssExtractPlugin from "mini-css-extract-plugin";
+import {DefinePlugin} from "webpack";
 
 
 /**
@@ -172,4 +173,25 @@ describe('Plugins support', () => {
     ).toEqual(1);
   });
   
+  /**
+   * Test that we are able to add new plugins
+   */
+  test('We should be able to define environment variables', () => {
+    const builder = new WebpackConfigBuilder();
+    builder.addEnvironmentVariable('MY_VAR', 'MY_VALUE');
+    
+    builder.enableDefaultPlugins(false);
+    const config = builder.build();
+    
+    const plugins = config.plugins.filter(plugin => plugin.constructor.name === 'DefinePlugin');
+    expect(
+      plugins.length,
+      'We should have a DefinePlugin in the output configuration'
+    ).toEqual(1);
+    
+    const definePlugin = plugins[0] as DefinePlugin;
+    expect(definePlugin.definitions).toHaveProperty('DEBUG', true);
+    expect(definePlugin.definitions).toHaveProperty('PRODUCTION', false);
+    expect(definePlugin.definitions).toHaveProperty('MY_VAR', 'MY_VALUE');
+  });
 });

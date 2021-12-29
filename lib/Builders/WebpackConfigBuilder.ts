@@ -1,4 +1,4 @@
-import {Configuration} from 'webpack';
+import {Configuration, DefinePlugin} from 'webpack';
 import defaultConfig, {
   defaultCSSConfig,
   defaultFontConfig,
@@ -40,6 +40,15 @@ export class WebpackConfigBuilder {
   };
   
   /**
+   * Holds a key-value map that will be used for set Environment variables
+   * @private
+   */
+  private readonly environment:Record<string, any> = {
+    DEBUG: process.env.NODE_ENV !== 'production',
+    PRODUCTION: process.env.NODE_ENV === 'production'
+  };
+  
+  /**
    * Allow or disallow the use of default plugins
    * @private
    */
@@ -77,7 +86,7 @@ export class WebpackConfigBuilder {
     
     this.defaultPlugins = {
       // Remove duplicate assets code
-      DuplicatePackageCheckerPlugin : {
+      DuplicatePackageCheckerPlugin: {
         init: () => new DuplicatePackageCheckerPlugin()
       },
       
@@ -119,6 +128,19 @@ export class WebpackConfigBuilder {
    */
   public addPlugin (pluginInitializer:WebpackPluginInitializer):WebpackConfigBuilder {
     this.plugins.push(pluginInitializer);
+    
+    return this;
+  }
+  
+  
+  /**
+   * Sets an environment value through the Webpack Define plugin
+   *
+   * @param key
+   * @param value
+   */
+  public addEnvironmentVariable (key:string, value:any):WebpackConfigBuilder {
+    this.environment[key] = value;
     
     return this;
   }
@@ -234,14 +256,20 @@ export class WebpackConfigBuilder {
    * @private
    */
   private applyPlugins ():WebpackConfigBuilder {
+    // Merge default plugins if they are enabled with user provided plugins
     const plugins:WebpackPluginInitializer[] = [
       ...(this.defaultPluginsEnabled ? Object.values(this.defaultPlugins) : []),
       ...this.plugins
     ];
     
+    // Initialize each plugin
     for (const initializer of plugins) {
       this.configuration.plugins.push(initializer.init(initializer.options));
     }
+    
+    // Add environment values if some has been added
+    if (Object.values(this.environment).length > 0)
+      this.configuration.plugins.push( new DefinePlugin(this.environment) );
     
     return this;
   }
@@ -255,7 +283,7 @@ export class WebpackConfigBuilder {
       // Compute filename configuration according to this.hashFilenamesEnabled
       .applyFilenames()
       
-      // Adds default plugins
+      // WARNING : MUST COME AFTER APPLY FILENAMES, Adds default plugins
       .applyPlugins()
       // Adds the rules
       .applyModulesRules();
