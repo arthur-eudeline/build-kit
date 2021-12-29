@@ -170,24 +170,6 @@ const defaultConfig:Configuration = {
     }
   },
   
-  // File content minimization
-  // optimization: {
-  //   minimize: true,
-  //   minimizer: [
-  //     `...`,
-  //     new CSSMinimizer({
-  //       minimizerOptions: {
-  //         preset: [
-  //           "default",
-  //           {
-  //             discardComments: { removeAll: true },
-  //           },
-  //         ],
-  //       },
-  //     })
-  //   ]
-  // },
-  
   // Entry files
   entry: {},
   

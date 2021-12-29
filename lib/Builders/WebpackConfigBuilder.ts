@@ -10,6 +10,7 @@ import {WebpackConfiguration, WebpackModuleRules, WebpackPluginInitializer} from
 import DuplicatePackageCheckerPlugin from 'duplicate-package-checker-webpack-plugin';
 import MiniCssExtractPlugin from "mini-css-extract-plugin";
 import {cloneDeep} from 'lodash';
+import CssMinimizerPlugin from "css-minimizer-webpack-plugin";
 
 
 /**
@@ -53,6 +54,12 @@ export class WebpackConfigBuilder {
    * @private
    */
   private defaultPluginsEnabled:boolean = true;
+  
+  /**
+   * Whether or not to optimize assets code
+   * @private
+   */
+  private optimizationEnabled:boolean = true;
   
   /**
    * Holds the custom plugins later added to the configuration by the user
@@ -152,6 +159,16 @@ export class WebpackConfigBuilder {
    */
   public enableDefaultPlugins (enable:boolean):WebpackConfigBuilder {
     this.defaultPluginsEnabled = enable;
+    return this;
+  }
+  
+  
+  /**
+   * Enable the code generation optimization. Enabled by default
+   * @param enable
+   */
+  public enableOptimization (enable:boolean):WebpackConfigBuilder {
+    this.optimizationEnabled = enable;
     return this;
   }
   
@@ -269,11 +286,39 @@ export class WebpackConfigBuilder {
     
     // Add environment values if some has been added
     if (Object.values(this.environment).length > 0)
-      this.configuration.plugins.push( new DefinePlugin(this.environment) );
+      this.configuration.plugins.push(new DefinePlugin(this.environment));
     
     return this;
   }
   
+  
+  /**
+   * Adds optimization configuration to the real webpack configuration
+   * @private
+   */
+  private applyOptimization():WebpackConfigBuilder {
+    if (!this.optimizationEnabled)
+      return this;
+    
+    this.configuration.optimization = {
+      minimize: true,
+      minimizer: [
+        `...`,
+        new CssMinimizerPlugin({
+          minimizerOptions: {
+            preset: [
+              "default",
+              {
+                discardComments: { removeAll: true },
+              },
+            ],
+          },
+        })
+      ]
+    };
+    
+    return this;
+  }
   
   /**
    * Gets the real webpack configuration
@@ -282,9 +327,10 @@ export class WebpackConfigBuilder {
     this
       // Compute filename configuration according to this.hashFilenamesEnabled
       .applyFilenames()
-      
       // WARNING : MUST COME AFTER APPLY FILENAMES, Adds default plugins
       .applyPlugins()
+      // Adds the optimization settings
+      .applyOptimization()
       // Adds the rules
       .applyModulesRules();
     
