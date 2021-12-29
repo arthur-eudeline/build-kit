@@ -1,6 +1,6 @@
 // noinspection JSUnusedGlobalSymbols
 
-import {Configuration, DefinePlugin} from 'webpack';
+import {Configuration, DefinePlugin, StatsOptions} from 'webpack';
 import defaultConfig, {
   defaultCSSConfig,
   defaultFontConfig,
@@ -279,6 +279,17 @@ export class WebpackConfigBuilder {
    */
   public setOutputPath (path:string):WebpackConfigBuilder {
     this.configuration.output.path = path;
+    
+    return this;
+  }
+  
+  
+  /**
+   * Defines the webpack stats configuration which modifies the webpack output
+   * @param stats
+   */
+  public setStats( stats:StatsOptions ):WebpackConfigBuilder {
+    this.configuration.stats = stats;
     
     return this;
   }
