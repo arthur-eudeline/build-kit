@@ -1,11 +1,6 @@
 import {Configuration} from "webpack";
 import {WebpackModuleRule} from "../../@types/webpack";
-
-// const path = require('path');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
-// const webpack = require("webpack");
-// const LodashModuleReplacementPlugin = require('lodash-webpack-plugin');
-// const AssetsPlugin = require('assets-webpack-plugin');
 
 export const defaultJavaScriptConfig:WebpackModuleRule = {
   name: 'JavaScript',
@@ -104,54 +99,7 @@ const defaultConfig:Configuration = {
   },
   
   // Plugins
-  plugins: [
-    // Generate an "assets.json" file required by the asset system
-    // new AssetsPlugin({
-    //   path: path.resolve(__dirname, './src/Assets/dist/'),
-    //   filename: 'assets.json',
-    //   includeAllFileTypes: true,
-    //   entrypoints: true,
-    //   removeFullPathAutoPrefix: true,
-    //   prettyPrint: true,
-    //   includeDynamicImportedAssets: true,
-    //   processOutput: (assets) => {
-    //     for (const assetKey in assets) {
-    //       const asset = assets[assetKey];
-    //       for (const assetType in asset) {
-    //         const assetsList = assets[assetKey][assetType];
-    //
-    //         // Converts the assets in array if it is not
-    //         if (!Array.isArray(assetsList)) {
-    //           assets[assetKey][assetType] = [assetsList];
-    //         }
-    //       }
-    //
-    //       // Adds the HotReload client script to the JS assets list if in development mode
-    //       if (!production) {
-    //         if (!assets[assetKey].js) {
-    //           // noinspection JSValidateTypes
-    //           assets[assetKey].js = [];
-    //         }
-    //
-    //         // How to add a new JS file
-    //         // if (!assets[assetKey].js.includes('test.js')) { // noinspection JSUnresolvedFunction
-    //         //   assets[assetKey].js.push('test.js');
-    //         // }
-    //       }
-    //     }
-    //
-    //     return JSON.stringify(assets, null, 2);
-    //   },
-    //   // processOutput: this.processOutput(webpackConfig)
-    // }),
-
-    // new webpack.IgnorePlugin({
-    //   checkResource(resource) {
-    //     // return resource.includes('@googlemaps');
-    //     return false;
-    //   },
-    // }),
-  ],
+  plugins: [],
   
   
   // Entry files

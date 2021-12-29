@@ -13,6 +13,8 @@ import DuplicatePackageCheckerPlugin from 'duplicate-package-checker-webpack-plu
 import MiniCssExtractPlugin from "mini-css-extract-plugin";
 import {cloneDeep} from 'lodash';
 import CssMinimizerPlugin from "css-minimizer-webpack-plugin";
+import {resolve} from "path";
+import * as AssetsPlugin from 'assets-webpack-plugin';
 
 
 /**
@@ -68,6 +70,12 @@ export class WebpackConfigBuilder {
    * @private
    */
   private outputCleaningEnabled:boolean = true;
+  
+  /**
+   * Defines if webpack will generate an asset.json file containing each asset path
+   * @private
+   */
+  private assetFileEnabled:boolean = true;
   
   /**
    * Holds the custom plugins later added to the configuration by the user
@@ -209,6 +217,7 @@ export class WebpackConfigBuilder {
     return this;
   }
   
+  
   /**
    * Whether to generate hash on file names or not
    *
@@ -220,6 +229,16 @@ export class WebpackConfigBuilder {
     return this;
   }
   
+  
+  /**
+   * Defines if webpack will generate an "asset.json" file which will contain each file
+   * path in it or not
+   * @param enabled
+   */
+  public enableAssetFile(enabled:boolean):WebpackConfigBuilder {
+    this.assetFileEnabled = enabled;
+    return this;
+  }
   
   /**
    * Apply the filename configuration according to this.hashFilenamesEnabled parameter
@@ -385,6 +404,51 @@ export class WebpackConfigBuilder {
   
   
   /**
+   * Adds asset file generation settings to the real webpack configuration
+   * @private
+   */
+  private applyAssetFile():WebpackConfigBuilder {
+    this.configuration.plugins.push(new AssetsPlugin({
+      path: resolve(this.configuration.output.path, './src/Assets/dist/'),
+      filename: 'assets.json',
+      includeAllFileTypes: true,
+      entrypoints: true,
+      removeFullPathAutoPrefix: true,
+      prettyPrint: true,
+      includeDynamicImportedAssets: true,
+      processOutput: (assets) => {
+        for (const assetKey in assets) {
+          const asset = assets[assetKey];
+          for (const assetType in asset) {
+            const assetsList = assets[assetKey][assetType];
+        
+            // Converts the assets in array if it is not
+            if (!Array.isArray(assetsList)) {
+              assets[assetKey][assetType] = [assetsList];
+            }
+          }
+      
+          // Adds the HotReload client script to the JS assets list if in development mode
+          // if (!production) {
+          //   if (!assets[assetKey].js) {
+          //     // noinspection JSValidateTypes
+          //     assets[assetKey].js = [];
+          //   }
+          //
+          //   // How to add a new JS file
+          //   // if (!assets[assetKey].js.includes('test.js')) { // noinspection JSUnresolvedFunction
+          //   //   assets[assetKey].js.push('test.js');
+          //   // }
+          // }
+        }
+    
+        return JSON.stringify(assets, null, 2);
+      },
+    }));
+    return this;
+  }
+  
+  /**
    * Gets the real webpack configuration
    */
   public build ():WebpackConfiguration {
@@ -393,6 +457,8 @@ export class WebpackConfigBuilder {
       .applyFilenames()
       // Adds the asset cleaning configuration
       .applyAssetCleaning()
+      // Adds assets file generation
+      .applyAssetFile()
       // WARNING : MUST COME AFTER APPLY FILENAMES, Adds default plugins
       .applyPlugins()
       // Adds the optimization settings
