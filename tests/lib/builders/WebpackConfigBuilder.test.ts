@@ -1,6 +1,7 @@
 import {WebpackConfigBuilder} from "../../../lib/Builders/WebpackConfigBuilder";
 import MiniCssExtractPlugin from "mini-css-extract-plugin";
 import {DefinePlugin} from "webpack";
+import validate from "webpack/schemas/WebpackOptions.check"
 
 
 /**
@@ -30,10 +31,11 @@ test('Adds entries correctly', () => {
   ).toBeGreaterThan(0);
   
   // Checks that the entry is correctly added
-  expect(output.entry).toHaveProperty('output-sub-dir/output-file')
+  expect(output.entry).toHaveProperty('output-sub-dir/output-file');
   expect(output.entry).toMatchObject({
     'output-sub-dir/output-file': 'output-sub-dir/output-file'
-  })
+  });
+  expect(validate(output)).toEqual(true);
 });
 
 /**
@@ -76,6 +78,14 @@ test('Files names should be hashed by default', () => {
   
   expect(imagesFilename, 'Images should be located in `img` sub folder').toMatch(/^img\//);
   expect(imagesFilename).toContain('[contenthash]');
+  
+  // Because we were debugging rules, we must remove rule.name property before checking config
+  config.module.rules = config.module.rules.map((rule) => {
+    delete rule.name;
+    return rule;
+  });
+  
+  expect(validate(config)).toEqual(true);
 });
 
 /**
@@ -110,6 +120,14 @@ test('We should be able to turn off filename hashing', () => {
   const imagesFilename = config.module.rules
     .filter((rule) => rule.name === 'Images')[0].generator!.filename;
   expect(imagesFilename).not.toContain('[contenthash]');
+  
+  // Because we were debugging rules, we must remove rule.name property before checking config
+  config.module.rules = config.module.rules.map((rule) => {
+    delete rule.name;
+    return rule;
+  });
+  
+  expect(validate(config)).toEqual(true);
 });
 
 /**
@@ -122,6 +140,7 @@ test('We should be able to set output path', () => {
   builder.setOutputPath('/dist');
   
   expect(builder.build().output!.path).toEqual('/dist');
+  expect(validate(builder.build())).toEqual(true);
 });
 
 /**
@@ -138,7 +157,7 @@ describe('Plugins support', () => {
       builder.build().plugins!.filter(plugin => plugin.constructor.name === 'MiniCssExtractPlugin').length,
       'We should find the default MiniCSSExtractPlugin plugin in the config'
     ).toEqual(1);
-  
+    expect(validate(builder.build())).toEqual(true);
   });
   
   /**
@@ -153,6 +172,8 @@ describe('Plugins support', () => {
       builder.build().plugins!.filter(plugin => plugin.constructor.name === 'MiniCssExtractPlugin').length,
       'We should not find the default MiniCSSExtractPlugin plugin in the config'
     ).toEqual(0);
+  
+    expect(validate(builder.build())).toEqual(true);
   });
   
   /**
@@ -174,6 +195,8 @@ describe('Plugins support', () => {
       config.plugins!.filter(plugin => plugin.constructor.name === 'MiniCssExtractPlugin').length,
       'We should have a MiniCSSExtractPlugin in the output configuration'
     ).toEqual(1);
+  
+    expect(validate(builder.build())).toEqual(true);
   });
   
   /**
@@ -196,5 +219,6 @@ describe('Plugins support', () => {
     expect(definePlugin.definitions).toHaveProperty('DEBUG', true);
     expect(definePlugin.definitions).toHaveProperty('PRODUCTION', false);
     expect(definePlugin.definitions).toHaveProperty('MY_VAR', 'MY_VALUE');
+    expect(validate(config)).toEqual(true);
   });
 });
