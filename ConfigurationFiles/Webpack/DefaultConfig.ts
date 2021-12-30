@@ -1,5 +1,4 @@
-import {Configuration} from "webpack";
-import {WebpackModuleRule} from "../../@types/webpack";
+import {WebpackConfiguration, WebpackModuleRule} from "../../@types/webpack";
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 
 export const defaultJavaScriptConfig:WebpackModuleRule = {
@@ -10,7 +9,7 @@ export const defaultJavaScriptConfig:WebpackModuleRule = {
       loader: "babel-loader",
     },
   ],
-  exclude: "node_modules"
+  exclude: /node_modules/,
 };
 
 export const defaultCSSConfig:WebpackModuleRule = {
@@ -55,7 +54,7 @@ export const defaultIconsConfig:WebpackModuleRule = {
   // Put fonts icons icons/ sub-directory
   generator: {
     filename: "icons/[name].[contenthash][ext]"
-  }
+  },
 };
 
 export const defaultImagesConfig:WebpackModuleRule = {
@@ -68,7 +67,7 @@ export const defaultImagesConfig:WebpackModuleRule = {
   }
 };
 
-const defaultConfig:Configuration = {
+const defaultConfig:WebpackConfiguration = {
   // Webpack log config
   stats: {
     assets: true,

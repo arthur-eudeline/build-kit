@@ -1,6 +1,5 @@
 // noinspection JSUnusedGlobalSymbols
 
-import {Configuration, DefinePlugin, StatsOptions} from 'webpack';
 import defaultConfig, {
   defaultCSSConfig,
   defaultFontConfig,
@@ -8,14 +7,19 @@ import defaultConfig, {
   defaultImagesConfig,
   defaultJavaScriptConfig
 } from '../../ConfigurationFiles/Webpack/DefaultConfig';
-import {WebpackConfiguration, WebpackModuleRules, WebpackPluginInitializer} from "../../@types/webpack";
+import {
+  WebpackConfiguration,
+  WebpackModuleRules, WebpackPlugin,
+  WebpackPluginInitializer,
+  WebpackRawConfiguration, WebpackStatsOptions
+} from "../../@types/webpack";
+import {cloneDeep} from 'lodash';
+import {resolve} from "path";
+import {DefinePlugin} from "webpack";
 import DuplicatePackageCheckerPlugin from 'duplicate-package-checker-webpack-plugin';
 import MiniCssExtractPlugin from "mini-css-extract-plugin";
-import {cloneDeep} from 'lodash';
 import CssMinimizerPlugin from "css-minimizer-webpack-plugin";
-import {resolve} from "path";
-import * as AssetsPlugin from 'assets-webpack-plugin';
-
+import AssetsPlugin from 'assets-webpack-plugin';
 
 /**
  * A class helper to build WebPack Configuration files
@@ -26,7 +30,7 @@ export class WebpackConfigBuilder {
    * Holds the Webpack configuration that will be manipulated
    * @private
    */
-  private readonly configuration:Configuration;
+  private readonly configuration:WebpackRawConfiguration;
   
   /**
    * Holds the Webpack modules rules that will define how files are handled
@@ -66,6 +70,13 @@ export class WebpackConfigBuilder {
   private optimizationEnabled:boolean = true;
   
   /**
+   * Keeps or remove rules[].name which are handful for tests but
+   * not authorized by webpack
+   * @private
+   */
+  private debugRulesNamesEnabled:boolean = false;
+  
+  /**
    * Defines if Webpack will delete previous files when building new ones
    * @private
    */
@@ -95,7 +106,7 @@ export class WebpackConfigBuilder {
    * Holds the callback that prevent assets to be cleaned by Webpack
    * @private
    */
-  private keepAssetsCB:(fileName:string) => boolean;
+  private keepAssetsCB?:(fileName:string) => boolean;
   
   
   /**
@@ -112,20 +123,19 @@ export class WebpackConfigBuilder {
       icons: cloneDeep(defaultIconsConfig),
     };
     
-    
     this.defaultPlugins = {
       // Remove duplicate assets code
       DuplicatePackageCheckerPlugin: {
-        init: () => new DuplicatePackageCheckerPlugin()
+        init: () => (new DuplicatePackageCheckerPlugin()) as WebpackPlugin,
       },
-      
+
       // Extract CSS content into different files
       MiniCssExtractPlugin: {
         options: {
           filename: "[name].[contenthash].min.css"
         },
         init: (options:MiniCssExtractPlugin.PluginOptions) => new MiniCssExtractPlugin(options),
-      },
+      } as WebpackPluginInitializer<MiniCssExtractPlugin.PluginOptions>,
     };
   }
   
@@ -144,7 +154,11 @@ export class WebpackConfigBuilder {
    * @returns {WebpackConfigBuilder} The current builder instance
    */
   public addEntry (inputPath:string, outputName:string):WebpackConfigBuilder {
-    this.configuration.entry[outputName] = inputPath;
+    if (!this.configuration.entry)
+      this.configuration.entry = {};
+  
+  
+    (this.configuration.entry as Record<string, string>)[outputName] = inputPath;
     
     return this;
   }
@@ -199,7 +213,7 @@ export class WebpackConfigBuilder {
    * Enable or disable the deletion of previous webpack generated output files
    * @param enable
    */
-  public enableOutputCleaning(enable:boolean):WebpackConfigBuilder {
+  public enableOutputCleaning (enable:boolean):WebpackConfigBuilder {
     this.outputCleaningEnabled = enable;
     return this;
   }
@@ -211,7 +225,7 @@ export class WebpackConfigBuilder {
    *
    * @param keepAssets
    */
-  public setAssetCleaningWhitelist( keepAssets: (fileName:string) => boolean):WebpackConfigBuilder {
+  public setAssetCleaningWhitelist (keepAssets:(fileName:string) => boolean):WebpackConfigBuilder {
     this.keepAssetsCB = keepAssets;
     
     return this;
@@ -231,14 +245,25 @@ export class WebpackConfigBuilder {
   
   
   /**
+   * Keeps or remove rules[].name which are handful for tests but
+   * not authorized by webpack
+   * @param enabled
+   */
+  public debugRulesName(enabled: boolean):WebpackConfigBuilder {
+    this.debugRulesNamesEnabled = enabled;
+    return this;
+  }
+  
+  /**
    * Defines if webpack will generate an "asset.json" file which will contain each file
    * path in it or not
    * @param enabled
    */
-  public enableAssetFile(enabled:boolean):WebpackConfigBuilder {
+  public enableAssetFile (enabled:boolean):WebpackConfigBuilder {
     this.assetFileEnabled = enabled;
     return this;
   }
+  
   
   /**
    * Apply the filename configuration according to this.hashFilenamesEnabled parameter
@@ -246,6 +271,9 @@ export class WebpackConfigBuilder {
    * @private
    */
   private applyFilenames ():WebpackConfigBuilder {
+    if (!this.configuration.output)
+      this.configuration.output = {};
+    
     // Chunks
     this.configuration.output.chunkFilename = this.hashFilenamesEnabled
       ? "[id].[contenthash].chunk.min.js"
@@ -262,22 +290,22 @@ export class WebpackConfigBuilder {
       : "[name].[hash].asset[ext]";
     
     // CSS
-    this.defaultPlugins.MiniCssExtractPlugin.options.filename = this.hashFilenamesEnabled
+    this.defaultPlugins.MiniCssExtractPlugin.options!.filename = this.hashFilenamesEnabled
       ? "[name].[contenthash].min.css"
       : "[name].css";
     
     // Fonts
-    this.moduleRules.font.generator.filename = this.hashFilenamesEnabled
+    this.moduleRules.font.generator!.filename = this.hashFilenamesEnabled
       ? "fonts/[name].[contenthash][ext]"
       : "fonts/[name][ext]";
     
     // Icons
-    this.moduleRules.icons.generator.filename = this.hashFilenamesEnabled
+    this.moduleRules.icons.generator!.filename = this.hashFilenamesEnabled
       ? "icons/[name].[contenthash][ext]"
       : "icons/[name][ext]";
     
     // Images
-    this.moduleRules.images.generator.filename = this.hashFilenamesEnabled
+    this.moduleRules.images.generator!.filename = this.hashFilenamesEnabled
       ? "img/[name].[contenthash][ext]"
       : "img/[name][ext]";
     
@@ -297,6 +325,9 @@ export class WebpackConfigBuilder {
    * @return {WebpackConfigBuilder} the current builder instance
    */
   public setOutputPath (path:string):WebpackConfigBuilder {
+    if (!this.configuration.output)
+      this.configuration.output = {};
+    
     this.configuration.output.path = path;
     
     return this;
@@ -307,7 +338,7 @@ export class WebpackConfigBuilder {
    * Defines the webpack stats configuration which modifies the webpack output
    * @param stats
    */
-  public setStats( stats:StatsOptions ):WebpackConfigBuilder {
+  public setStats (stats:WebpackStatsOptions):WebpackConfigBuilder {
     this.configuration.stats = stats;
     
     return this;
@@ -327,7 +358,16 @@ export class WebpackConfigBuilder {
    * @private
    */
   private applyModulesRules ():WebpackConfigBuilder {
-    this.configuration.module.rules = Object.values(this.getModulesRules());
+    const rules =  Object.values(cloneDeep(this.getModulesRules()));
+    
+    // Remove name property which is not valid for webpack
+    if (!this.debugRulesNamesEnabled)
+      rules.map((value) => {
+        delete value.name;
+        return value;
+      });
+    
+    this.configuration.module!.rules = rules;
     
     return this;
   }
@@ -344,6 +384,9 @@ export class WebpackConfigBuilder {
       ...(this.defaultPluginsEnabled ? Object.values(this.defaultPlugins) : []),
       ...this.plugins
     ];
+    
+    if (!this.configuration.plugins)
+      this.configuration.plugins = [];
     
     // Initialize each plugin
     for (const initializer of plugins) {
@@ -362,7 +405,7 @@ export class WebpackConfigBuilder {
    * Adds optimization configuration to the real webpack configuration
    * @private
    */
-  private applyOptimization():WebpackConfigBuilder {
+  private applyOptimization ():WebpackConfigBuilder {
     if (!this.optimizationEnabled)
       return this;
     
@@ -370,12 +413,13 @@ export class WebpackConfigBuilder {
       minimize: true,
       minimizer: [
         `...`,
+        // @ts-ignore
         new CssMinimizerPlugin({
           minimizerOptions: {
             preset: [
               "default",
               {
-                discardComments: { removeAll: true },
+                discardComments: {removeAll: true},
               },
             ],
           },
@@ -391,9 +435,12 @@ export class WebpackConfigBuilder {
    * Adds the asset cleaning configuration to the real webpack configuration
    * @private
    */
-  private applyAssetCleaning():WebpackConfigBuilder {
+  private applyAssetCleaning ():WebpackConfigBuilder {
     if (!this.outputCleaningEnabled)
       return this;
+    
+    if (!this.configuration.output)
+      this.configuration.output = {};
     
     this.configuration.output.clean = {
       keep: this.keepAssetsCB
@@ -407,9 +454,17 @@ export class WebpackConfigBuilder {
    * Adds asset file generation settings to the real webpack configuration
    * @private
    */
-  private applyAssetFile():WebpackConfigBuilder {
+  private applyAssetFile ():WebpackConfigBuilder {
+    if(!this.configuration.output)
+      this.configuration.output = {};
+    
+    const outputPath = this.configuration.output.path;
+    
+    if (!this.configuration.plugins)
+      this.configuration.plugins = [];
+
     this.configuration.plugins.push(new AssetsPlugin({
-      path: resolve(this.configuration.output.path, './src/Assets/dist/'),
+      path: resolve(outputPath ? outputPath : '', './src/Assets/dist/'),
       filename: 'assets.json',
       includeAllFileTypes: true,
       entrypoints: true,
@@ -421,13 +476,14 @@ export class WebpackConfigBuilder {
           const asset = assets[assetKey];
           for (const assetType in asset) {
             const assetsList = assets[assetKey][assetType];
-        
+
             // Converts the assets in array if it is not
             if (!Array.isArray(assetsList)) {
+              // @ts-ignore
               assets[assetKey][assetType] = [assetsList];
             }
           }
-      
+
           // Adds the HotReload client script to the JS assets list if in development mode
           // if (!production) {
           //   if (!assets[assetKey].js) {
@@ -441,12 +497,14 @@ export class WebpackConfigBuilder {
           //   // }
           // }
         }
-    
+
         return JSON.stringify(assets, null, 2);
       },
     }));
+    
     return this;
   }
+  
   
   /**
    * Gets the real webpack configuration
@@ -469,5 +527,4 @@ export class WebpackConfigBuilder {
     // @ts-ignore
     return this.configuration;
   }
-  
 }

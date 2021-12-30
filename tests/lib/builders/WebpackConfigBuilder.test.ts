@@ -11,7 +11,7 @@ test('Adds entries correctly', () => {
   
   // Should be empty by default
   expect(
-    Object.keys(builder.build().entry).length,
+    Object.keys(builder.build().entry as object).length,
     'Entries should be empty by default')
     .toEqual(0);
   
@@ -25,7 +25,7 @@ test('Adds entries correctly', () => {
   
   // Checks that the entry object is not empty
   expect(
-    Object.keys(output.entry).length,
+    Object.keys(output.entry as object).length,
     'Entry should have been added'
   ).toBeGreaterThan(0);
   
@@ -40,37 +40,39 @@ test('Adds entries correctly', () => {
  * Checks that all filenames are by default hashed
  */
 test('Files names should be hashed by default', () => {
-  const config = (new WebpackConfigBuilder()).build();
+  const config = (new WebpackConfigBuilder())
+    .debugRulesName(true)
+    .build();
   
   // Assets
-  expect(config.output.assetModuleFilename)
+  expect(config.output!.assetModuleFilename)
     .toContain('[contenthash]');
   
   // Chunk
-  expect(config.output.chunkFilename)
+  expect(config.output!.chunkFilename)
     .toContain('[contenthash]');
   
   // Filename
-  expect(config.output.filename)
+  expect(config.output!.filename)
     .toContain('[contenthash]');
   
   // Fonts
   const fontFilename = config.module.rules
-    .filter((rule) => rule.name === 'Font')[0].generator.filename;
+    .filter((rule) => rule.name === 'Font')[0].generator!.filename;
   
   expect(fontFilename, 'Fonts should be located in sub folders').toMatch(/^fonts\//);
   expect(fontFilename).toContain('[contenthash]');
   
   // Icons
   const iconsFilename = config.module.rules
-    .filter((rule) => rule.name === 'Icons')[0].generator.filename;
+    .filter((rule) => rule.name === 'Icons')[0].generator!.filename;
   
   expect(iconsFilename, 'Icons should be located in `icons` sub folder').toMatch(/^icons\//);
   expect(iconsFilename).toContain('[contenthash]');
   
   // Images
   const imagesFilename = config.module.rules
-    .filter((rule) => rule.name === 'Images')[0].generator.filename;
+    .filter((rule) => rule.name === 'Images')[0].generator!.filename;
   
   expect(imagesFilename, 'Images should be located in `img` sub folder').toMatch(/^img\//);
   expect(imagesFilename).toContain('[contenthash]');
@@ -81,31 +83,32 @@ test('Files names should be hashed by default', () => {
  */
 test('We should be able to turn off filename hashing', () => {
   // Enabled by default
-  expect((new WebpackConfigBuilder()).build().output.filename)
+  expect((new WebpackConfigBuilder()).build().output!.filename)
     .toContain('[contenthash]');
   
   // We disable the filename hashing
   const config = (new WebpackConfigBuilder())
     .enableFilenamesHash(false)
+    .debugRulesName(true)
     .build();
   
   // We should not have "contenthash" placeholder in filenames
-  expect(config.output.filename)
+  expect(config.output!.filename)
     .not.toContain('[contenthash]');
   
   // Fonts
   const fontFilename = config.module.rules
-    .filter((rule) => rule.name === 'Font')[0].generator.filename;
+    .filter((rule) => rule.name === 'Font')[0].generator!.filename;
   expect(fontFilename).not.toContain('[contenthash]');
   
   // Icons
   const iconsFilename = config.module.rules
-    .filter((rule) => rule.name === 'Icons')[0].generator.filename;
+    .filter((rule) => rule.name === 'Icons')[0].generator!.filename;
   expect(iconsFilename).not.toContain('[contenthash]');
   
   // Images
   const imagesFilename = config.module.rules
-    .filter((rule) => rule.name === 'Images')[0].generator.filename;
+    .filter((rule) => rule.name === 'Images')[0].generator!.filename;
   expect(imagesFilename).not.toContain('[contenthash]');
 });
 
@@ -114,11 +117,11 @@ test('We should be able to turn off filename hashing', () => {
  */
 test('We should be able to set output path', () => {
   const builder = new WebpackConfigBuilder();
-  expect(builder.build().output.path).toBe(undefined);
+  expect(builder.build().output!.path).toBe(undefined);
   
   builder.setOutputPath('/dist');
   
-  expect(builder.build().output.path).toEqual('/dist');
+  expect(builder.build().output!.path).toEqual('/dist');
 });
 
 /**
@@ -132,7 +135,7 @@ describe('Plugins support', () => {
     const builder = new WebpackConfigBuilder();
     // By default it should have one plugin
     expect(
-      builder.build().plugins.filter(plugin => plugin.constructor.name === 'MiniCssExtractPlugin').length,
+      builder.build().plugins!.filter(plugin => plugin.constructor.name === 'MiniCssExtractPlugin').length,
       'We should find the default MiniCSSExtractPlugin plugin in the config'
     ).toEqual(1);
   
@@ -147,7 +150,7 @@ describe('Plugins support', () => {
     builder.enableDefaultPlugins(false);
   
     expect(
-      builder.build().plugins.filter(plugin => plugin.constructor.name === 'MiniCssExtractPlugin').length,
+      builder.build().plugins!.filter(plugin => plugin.constructor.name === 'MiniCssExtractPlugin').length,
       'We should not find the default MiniCSSExtractPlugin plugin in the config'
     ).toEqual(0);
   });
@@ -168,7 +171,7 @@ describe('Plugins support', () => {
     const config = builder.build();
     
     expect(
-      config.plugins.filter(plugin => plugin.constructor.name === 'MiniCssExtractPlugin').length,
+      config.plugins!.filter(plugin => plugin.constructor.name === 'MiniCssExtractPlugin').length,
       'We should have a MiniCSSExtractPlugin in the output configuration'
     ).toEqual(1);
   });
@@ -183,7 +186,7 @@ describe('Plugins support', () => {
     builder.enableDefaultPlugins(false);
     const config = builder.build();
     
-    const plugins = config.plugins.filter(plugin => plugin.constructor.name === 'DefinePlugin');
+    const plugins = config.plugins!.filter(plugin => plugin.constructor.name === 'DefinePlugin');
     expect(
       plugins.length,
       'We should have a DefinePlugin in the output configuration'
