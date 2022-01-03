@@ -1,6 +1,6 @@
 {
   "name": "@arthur.eudeline/build-kit",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "A package that include several tools to help improve your project quality",
   "main": "dist/lib/index.js",
   "types": "dist/lib/index.d.ts",
@@ -14,7 +14,7 @@
   "license": "MIT",
   "homepage": "https://github.com/arthur-eudeline/build-kit#readme",
   "bugs": {
-    "url" : "https://github.com/arthur-eudeline/build-kit"
+    "url": "https://github.com/arthur-eudeline/build-kit"
   },
   "repository": {
     "type": "git",
