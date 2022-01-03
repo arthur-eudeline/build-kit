@@ -516,11 +516,12 @@ export class WebpackConfigBuilder {
    * @private
    */
   private validate() : void {
-    // If we don't have path
-    if (this.configuration.output?.path === undefined) {
+    // If we don't have path and we're not running tests
+    if (this.configuration.output?.path === undefined && process.env.NODE_ENV !== 'test') {
       Logger.error(new Error(`You must define an output path by using ${
         chalk.yellow.bold('WebpackConfigBuilder.setOutputPath()')
       }`));
+      console.log(process.env)
       process.exit(1);
     }
   }
@@ -547,7 +548,8 @@ export class WebpackConfigBuilder {
     // Will throw errors if the generated configuration is missing some fields
     this.validate();
     
-    Logger.success('Webpack Configuration built!');
+    if (process.env.NODE_ENV !== 'test')
+      Logger.success('Webpack Configuration built!');
     
     // @ts-ignore
     return this.configuration;

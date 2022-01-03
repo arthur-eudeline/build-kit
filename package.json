@@ -1,18 +1,18 @@
 {
-  "name": "build-kit",
+  "name": "@ae/build-kit",
   "version": "0.0.1",
-  "browserslist": [
-    "last 2 versions"
-  ],
   "description": "A package that include several tools to help improve your project quality",
   "main": "dist/lib/index.js",
   "types": "dist/lib/index.d.ts",
   "scripts": {
     "test": "jest --coverage",
-    "build": "tsc"
+    "build": "tsc",
+    "prepare": "husky install",
+    "standard-version" : "standard-version"
   },
   "author": "Arthur Eudeline <contact@arthur-eudeline.com>",
-  "license": "ISC",
+  "license": "MIT",
+  "private": false,
   "dependencies": {
     "@alex_neo/jest-expect-message": "^1.0.5",
     "@types/jest-expect-message": "^1.0.3",
@@ -35,6 +35,8 @@
     "@babel/plugin-transform-runtime": "^7.14.5",
     "@babel/preset-env": "^7.16.5",
     "@babel/preset-typescript": "^7.16.5",
+    "@commitlint/cli": "^16.0.1",
+    "@commitlint/config-conventional": "^16.0.0",
     "@swc/core": "^1.2.124",
     "@types/assets-webpack-plugin": "^7.1.0",
     "@types/duplicate-package-checker-webpack-plugin": "^2.1.2",
@@ -45,8 +47,10 @@
     "babel-jest": "^27.4.5",
     "clean-css": "^5.2.2",
     "esbuild": "^0.14.9",
+    "husky": "^7.0.4",
     "jest": "^27.4.5",
     "jest-expect-message": "^1.0.2",
+    "standard-version": "^9.3.2",
     "ts-loader": "^9.2.6",
     "ts-node": "^10.4.0",
     "uglify-js": "^3.14.5"
