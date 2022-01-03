@@ -73,7 +73,7 @@ const defaultConfig:WebpackConfiguration = {
     assets: true,
     moduleAssets: true,
     version: true,
-    errorStack: false,
+    errorStack: true,
     performance: true,
     errorDetails: true,
     loggingTrace: false,
@@ -100,6 +100,10 @@ const defaultConfig:WebpackConfiguration = {
   // Plugins
   plugins: [],
   
+  // Needed to tell webpack to consider these files
+  resolve: {
+    extensions: ['.ts', '.js', '.tsx', '.jsx']
+  },
   
   // Entry files
   entry: {},
