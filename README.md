@@ -32,7 +32,7 @@ Start by adding it to your project
 npm i --save-dev build-kit
 ```
 
-Next, you should check [documention of each module](./docs) you want to use individually.
+Next, you should check [documention of each module](./docs/index.md) you want to use individually.
 
 You can also run tests by running the following command in the project
 

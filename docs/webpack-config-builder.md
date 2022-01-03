@@ -60,7 +60,7 @@ This module aims to help you quickly build Webpack configurations for your proje
 
 4. Add the following line to your `package.json`
 
-   ```json
+   ```jsonc
    {
      // ...
      "scripts" : {
@@ -335,7 +335,7 @@ if (MY_KEY)
 
 To get better support in TypeScript, you can declare them globally :
 
-```ts
+```typescript
 // @types/global.d.ts
 declare global {
   const MY_KEY:string;
