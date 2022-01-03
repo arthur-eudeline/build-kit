@@ -6,7 +6,7 @@ BuildKit is a foundation for web based projects. It includes tools to help you s
 
 ## Table of contents
 
-- [What does it includes?](#whats-included)
+- [What does it include?](#whats-included)
 - [Installation](#installation)
 - [Roadmap](#roadmap)
 - [Motivation](#motivation)
@@ -16,9 +16,9 @@ BuildKit is a foundation for web based projects. It includes tools to help you s
 
 <a name="whats-included"></a>
 
-## What does it includes?
+## What does it include?
 
-- A [Webpack Configuration Builder](./docs/webpack-config-builder.md) inspired by [Symonfy Encore](https://symfony.com/doc/current/frontend.html#webpack-encore)
+- A [Webpack Configuration Builder](https://github.com/arthur-eudeline/build-kit/docs/webpack-config-builder.md) inspired by [Symfony Encore](https://symfony.com/doc/current/frontend.html#webpack-encore)
 
 
 
@@ -32,7 +32,7 @@ Start by adding it to your project
 npm i --save-dev build-kit
 ```
 
-Next, you should check [documention of each module](./docs/index.md) you want to use individually.
+Next, you should check [documentation of each module](https://github.com/arthur-eudeline/build-kit/docs/index.md) you want to use individually.
 
 You can also run tests by running the following command in the project
 
@@ -51,7 +51,7 @@ npm run test
 
 - [ ] TypeScript support
 - [ ] Tailwind support
-- [ ] Husky + CommintLint support
+- [ ] Husky + CommitLint support
 - [ ] PHPUnit support
 - [ ] Jest support
 - [ ] Docker compose dev environment support 
@@ -80,4 +80,4 @@ Permission is hereby granted, free of charge, to any person obtaining a copy of 
 
 The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON INFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
