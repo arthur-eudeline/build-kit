@@ -7,10 +7,12 @@
   "scripts": {
     "test": "jest --coverage",
     "build": "tsc",
-    "prepare": "husky install"
+    "prepare": "husky install",
+    "standard-version" : "standard-version"
   },
   "author": "Arthur Eudeline <contact@arthur-eudeline.com>",
   "license": "MIT",
+  "private": false,
   "dependencies": {
     "@alex_neo/jest-expect-message": "^1.0.5",
     "@types/jest-expect-message": "^1.0.3",

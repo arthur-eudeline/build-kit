@@ -1,0 +1,73 @@
+name: Test build and Deploy on NPM
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  main:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      # Get access to the project code
+      - uses: actions/checkout@v2
+
+      # Install NodeJS 12
+      - name: Use Node.js 12
+        uses: actions/setup-node@v2
+        with:
+          node-version: '12.x'
+          cache: 'npm'
+
+      # Install NPM dependencies
+      - name: Install dependencies
+        run: npm ci
+
+      # Run Jest Tests
+      - name: Run tests
+        run: npm test
+
+      # Build the project
+      - name: Build the project
+        run: npm run build
+
+      # Update the project version
+      - name: Update the project version
+        run: npm run standard-version
+      - name: Push changes
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ github.ref }}
+          tags: true
+
+      # Stores the latest tag generated to use it later
+      - name: 'Get Previous tag'
+        id: previoustag
+        uses: 'WyriHaximus/github-action-get-previous-tag@v1'
+
+      # Create a release
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
+        with:
+          tag_name: ${{ steps.previoustag.outputs.tag }}
+          release_name: Release ${{ gsteps.previoustag.outputs.tag }}
+          body_path: 'CHANGELOG.md'
+          draft: false
+          prerelease: false
+
+      # Publish on NPM
+      - name: Publish on NPM
+        uses: JS-DevTools/npm-publish@v1
+        with:
+          token: ${{ secrets.NPM_TOKEN }}
+          access: 'public'
+
+
