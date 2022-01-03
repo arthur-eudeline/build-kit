@@ -1,4 +1,12 @@
+# This workflow will do the following :
+# - Run tests
+# - Build the project
+# - Update the project version
+# - Create a release object on GitHub
+# - Publish it on NPM
 name: Test build and Deploy on NPM
+
+# Triggered on push or pull_requests targeting master
 on:
   push:
     branches:
@@ -9,7 +17,6 @@ on:
 
 jobs:
   main:
-
     runs-on: ubuntu-latest
 
     steps:
