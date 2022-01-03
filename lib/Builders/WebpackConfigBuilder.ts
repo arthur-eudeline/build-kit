@@ -81,7 +81,7 @@ export class WebpackConfigBuilder {
    * Defines if Webpack will delete previous files when building new ones
    * @private
    */
-  private outputCleaningEnabled:boolean = true;
+  private outputCleaningEnabled:boolean = false;
   
   /**
    * Defines if webpack will generate an asset.json file containing each asset path

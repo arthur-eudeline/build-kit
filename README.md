@@ -18,7 +18,7 @@ BuildKit is a foundation for web based projects. It includes tools to help you s
 
 ## What does it includes?
 
-- A Webpack Configuration Builder inspired by Symonfy Encore 
+- A [Webpack Configuration Builder](./docs/webpack-config-builder.md) inspired by [Symonfy Encore](https://symfony.com/doc/current/frontend.html#webpack-encore)
 
 
 
@@ -32,7 +32,7 @@ Start by adding it to your project
 npm i --save-dev build-kit
 ```
 
-Next, you should check documention on each module you want to use individually.
+Next, you should check [documention of each module](./docs) you want to use individually.
 
 You can also run tests by running the following command in the project
 
