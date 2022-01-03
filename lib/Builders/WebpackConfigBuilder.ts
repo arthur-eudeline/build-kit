@@ -14,12 +14,13 @@ import {
   WebpackRawConfiguration, WebpackStatsOptions
 } from "../../@types/webpack";
 import {cloneDeep} from 'lodash';
-import {resolve} from "path";
 import {DefinePlugin} from "webpack";
 import DuplicatePackageCheckerPlugin from 'duplicate-package-checker-webpack-plugin';
 import MiniCssExtractPlugin from "mini-css-extract-plugin";
 import CssMinimizerPlugin from "css-minimizer-webpack-plugin";
 import AssetsPlugin from 'assets-webpack-plugin';
+import {Logger} from "../Common/Logger";
+import chalk from "chalk";
 
 /**
  * A class helper to build WebPack Configuration files
@@ -442,9 +443,10 @@ export class WebpackConfigBuilder {
     if (!this.configuration.output)
       this.configuration.output = {};
     
-    this.configuration.output.clean = {
-      keep: this.keepAssetsCB
-    };
+    if (this.keepAssetsCB)
+      this.configuration.output.clean = {
+        keep: this.keepAssetsCB
+      };
     
     return this;
   }
@@ -455,6 +457,9 @@ export class WebpackConfigBuilder {
    * @private
    */
   private applyAssetFile ():WebpackConfigBuilder {
+    if(!this.assetFileEnabled)
+      return this;
+    
     if(!this.configuration.output)
       this.configuration.output = {};
     
@@ -464,7 +469,7 @@ export class WebpackConfigBuilder {
       this.configuration.plugins = [];
 
     this.configuration.plugins.push(new AssetsPlugin({
-      path: resolve(outputPath ? outputPath : '', './src/Assets/dist/'),
+      path: outputPath ? outputPath : './',
       filename: 'assets.json',
       includeAllFileTypes: true,
       entrypoints: true,
@@ -507,6 +512,21 @@ export class WebpackConfigBuilder {
   
   
   /**
+   * Validate the Webpack configuration and throw errors if its not valid
+   * @private
+   */
+  private validate() : void {
+    // If we don't have path
+    if (this.configuration.output?.path === undefined) {
+      Logger.error(new Error(`You must define an output path by using ${
+        chalk.yellow.bold('WebpackConfigBuilder.setOutputPath()')
+      }`));
+      process.exit(1);
+    }
+  }
+  
+  
+  /**
    * Gets the real webpack configuration
    */
   public build ():WebpackConfiguration {
@@ -523,6 +543,11 @@ export class WebpackConfigBuilder {
       .applyOptimization()
       // Adds the rules
       .applyModulesRules();
+    
+    // Will throw errors if the generated configuration is missing some fields
+    this.validate();
+    
+    Logger.success('Webpack Configuration built!');
     
     // @ts-ignore
     return this.configuration;
