@@ -18,7 +18,7 @@ BuildKit is a foundation for web based projects. It includes tools to help you s
 
 ## What does it include?
 
-- A [Webpack Configuration Builder](https://github.com/arthur-eudeline/build-kit/docs/webpack-config-builder.md) inspired by [Symfony Encore](https://symfony.com/doc/current/frontend.html#webpack-encore)
+- A [Webpack Configuration Builder](https://github.com/arthur-eudeline/build-kit/tree/master/docs/webpack-config-builder.md) inspired by [Symfony Encore](https://symfony.com/doc/current/frontend.html#webpack-encore)
 
 
 
@@ -29,15 +29,15 @@ BuildKit is a foundation for web based projects. It includes tools to help you s
 Start by adding it to your project
 
 ```shell
-npm i --save-dev build-kit
+npm i -D @arthur.eudeline/build-kit
 ```
 
-Next, you should check [documentation of each module](https://github.com/arthur-eudeline/build-kit/docs/index.md) you want to use individually.
+Next, you should check [documentation of each module](https://github.com/arthur-eudeline/build-kit/tree/master/docs/index.md) you want to use individually.
 
 You can also run tests by running the following command in the project
 
 ```shell
-npm run test
+npm test
 ```
 
 

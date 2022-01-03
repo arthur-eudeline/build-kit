@@ -27,10 +27,10 @@ This module aims to help you quickly build Webpack configurations for your proje
 
 ## Quick Start
 
-1. Install `build-kit` to your project 
+1. Install `@arthur.eudeline/build-kit` to your project 
 
    ```shell
-   npm i --save-dev @ae/build-kit
+   npm i -D @arthur.eudeline/build-kit
    ```
 
 2. Install `webpack` to your project by following the instructions of the [webpack documentation](https://webpack.js.org/guides/installation/)
@@ -41,7 +41,7 @@ This module aims to help you quickly build Webpack configurations for your proje
    const path = require('path');
    
    // Import the Configuration Builder
-   const { WebpackConfigBuilder } = require('build-kit');
+   const { WebpackConfigBuilder } = require('@arthur.eudeline/build-kit');
    
    const config = WebpackConfigBuilder()
    	// Define an output path (required)
