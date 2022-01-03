@@ -1,6 +1,6 @@
 {
   "name": "@ae/build-kit",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "A package that include several tools to help improve your project quality",
   "main": "dist/lib/index.js",
   "types": "dist/lib/index.d.ts",
@@ -8,7 +8,7 @@
     "test": "jest --coverage",
     "build": "tsc",
     "prepare": "husky install",
-    "standard-version" : "standard-version"
+    "standard-version": "standard-version"
   },
   "author": "Arthur Eudeline <contact@arthur-eudeline.com>",
   "license": "MIT",
