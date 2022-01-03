@@ -11,9 +11,6 @@ on:
   push:
     branches:
       - master
-  pull_request:
-    branches:
-      - master
 
 jobs:
   main:
@@ -45,17 +42,15 @@ jobs:
       # Update the project version
       - name: Set Git settings
         run: |
-          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
+          git config --local user.email "github-actions@users.noreply.github.com"
+          git config --local user.name "GitHub Actions"
 
       - name: Update the project version
         run: npm run standard-version
-      - name: Push changes
-        uses: ad-m/github-push-action@master
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          branch: ${{ github.ref }}
-          tags: true
+      - name: Push Local Changes
+        run: |
+          git status
+          git push --follow-tags origin HEAD
 
       # Stores the latest tag generated to use it later
       - name: 'Get Previous tag'
