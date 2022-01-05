@@ -1,4 +1,6 @@
-import {WebpackConfiguration, WebpackModuleRule} from "../../@types/webpack";
+import {WebpackModuleRule} from "../../@types/webpack";
+import {Configuration} from "webpack";
+import {join} from "path";
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 
 export const defaultJavaScriptConfig:WebpackModuleRule = {
@@ -67,7 +69,7 @@ export const defaultImagesConfig:WebpackModuleRule = {
   }
 };
 
-const defaultConfig:WebpackConfiguration = {
+const defaultConfig:Configuration = {
   // Webpack log config
   stats: {
     assets: true,
@@ -107,6 +109,16 @@ const defaultConfig:WebpackConfiguration = {
   
   // Entry files
   entry: {},
+  
+  // Dev server
+  devServer: {
+    port: 9000,
+    static: [],
+    client: {
+      overlay: true,
+    },
+    hot: true,
+  },
   
   // Output configuration
   output: {
