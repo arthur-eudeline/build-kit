@@ -342,19 +342,35 @@ export class WebpackConfigBuilder {
 
     // If the provided path is a string
     if (typeof path === 'string') {
-      if (!Path.isAbsolute(path)) {
-        Logger.error(new Error(`The output path you have given is not an absolute path. You can specify one by using :
-        - ${ chalk.yellow.bold('builder.setOutputPath( path.resolve(__dirname, \'./src/assets/dist`) );') }
-        - ${ chalk.yellow.bold('builder.setOutputPath( {\n' +
-          '   absolute: path.resolve(__dirname, \'./src/assets/dist`),\n' +
-          '   relative: \'./src/assets/dist\',\n' +
-          '});\n')}
-        `));
-        process.exit(1);
-      }
-      
-      
       path = {absolute: path};
+    }
+    
+    // Throw an error if we don't have absolute path passed
+    if (path.absolute === undefined) {
+      Logger.error(new Error(`You must provide at least an ${ chalk.yellow.bold('absolute path') } to the ${ chalk.yellow.bold('builder.setOutputPath()') } method :
+      - ${ chalk.yellow.bold('builder.setOutputPath( path.resolve(__dirname, \'./src/assets/dist`) );') }
+      - ${ chalk.yellow.bold('builder.setOutputPath( {\n' +
+        '   absolute: path.resolve(__dirname, \'./src/assets/dist`),\n' +
+        '   relative: \'./src/assets/dist\',\n' +
+        '});\n')}
+      `));
+      process.exit(1);
+      
+      return this;
+    }
+    
+    // Throw an error if the path.absolute value is not absolute
+    if (!Path.isAbsolute(path.absolute)) {
+      Logger.error(new Error(`The output path you have given is not an absolute path. You can specify one by using :
+      - ${ chalk.yellow.bold('builder.setOutputPath( path.resolve(__dirname, \'./src/assets/dist`) );') }
+      - ${ chalk.yellow.bold('builder.setOutputPath( {\n' +
+        '   absolute: path.resolve(__dirname, \'./src/assets/dist`),\n' +
+        '   relative: \'./src/assets/dist\',\n' +
+        '});\n')}
+      `));
+      process.exit(1);
+      
+      return this;
     }
     
     this.configuration.output.path = path.absolute;

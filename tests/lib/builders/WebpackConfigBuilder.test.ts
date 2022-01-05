@@ -3,7 +3,16 @@ import MiniCssExtractPlugin from "mini-css-extract-plugin";
 import {DefinePlugin} from "webpack";
 import validate from "webpack/schemas/WebpackOptions.check"
 import {WebpackModuleRule} from "../../../@types/webpack";
+import * as path from "path";
+import consola from "consola";
 
+
+test('Configuration should be valid by default', () => {
+  const builder = new WebpackConfigBuilder();
+  builder.setOutputPath( path.join(__dirname, 'test' ) );
+  
+  expect(validate(builder.build())).toEqual(true);
+});
 
 /**
  * Test for adding entries to the configuration
@@ -240,5 +249,73 @@ describe('Plugins support', () => {
     expect(definePlugin.definitions).toHaveProperty('PRODUCTION', false);
     expect(definePlugin.definitions).toHaveProperty('MY_VAR', 'MY_VALUE');
     expect(validate(config)).toEqual(true);
+  });
+});
+
+/**
+ *
+ */
+describe('Output Path', () => {
+  test('Output path should be able to be set as string', () => {
+    const config = (new WebpackConfigBuilder())
+      .setOutputPath( path.join(__dirname, 'test') )
+      .build();
+    
+    expect(config.output!.path).toEqual( path.join(__dirname, 'test' ) );
+    expect(validate(config)).toEqual(true);
+  });
+  
+  test('Output path should be able to be set as object', () => {
+    const config = (new WebpackConfigBuilder())
+      .setOutputPath({absolute: '/Users/tests/my-path' })
+      .build();
+  
+    expect(config.output!.path).toEqual( '/Users/tests/my-path' );
+    expect(validate(config)).toEqual(true);
+  });
+  
+  const mockExit = jest.spyOn(process, 'exit')
+    // @ts-ignore
+    .mockImplementation((code?:number) : never => {} );
+  
+  const mockConsola = jest.spyOn(consola, 'error')
+    .mockImplementation( args => {});
+  
+  test('Should throw an error if path is not absolute', () => {
+    mockConsola.mockReset();
+    mockExit.mockReset();
+    
+    (new WebpackConfigBuilder())
+      .setOutputPath('./test')
+      .build();
+  
+    expect(mockExit).toHaveBeenLastCalledWith(1);
+    expect(mockConsola).toHaveBeenCalled();
+  });
+  
+  test('Should throw an error if only a path.relative is the only property passed', () => {
+    mockConsola.mockReset();
+    mockExit.mockReset();
+  
+    (new WebpackConfigBuilder())
+      // @ts-ignore
+      .setOutputPath({relative: './test'})
+      .build();
+  
+    expect(mockExit).toHaveBeenLastCalledWith(1);
+    expect(mockConsola).toHaveBeenCalled();
+  });
+  
+  test('Should throw an error if the path.absolute value is relative', () => {
+    mockConsola.mockReset();
+    mockExit.mockReset();
+  
+    (new WebpackConfigBuilder())
+      // @ts-ignore
+      .setOutputPath({absolute: './test' })
+      .build();
+  
+    expect(mockExit).toHaveBeenLastCalledWith(1);
+    expect(mockConsola).toHaveBeenCalled();
   });
 });
