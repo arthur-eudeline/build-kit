@@ -110,6 +110,16 @@ const defaultConfig:Configuration = {
   // Entry files
   entry: {},
   
+  // Dev server
+  devServer: {
+    port: 9000,
+    static: [],
+    client: {
+      overlay: true,
+    },
+    hot: true,
+  },
+  
   // Output configuration
   output: {
     
