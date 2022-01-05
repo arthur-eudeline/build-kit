@@ -5,7 +5,8 @@
   "main": "dist/lib/index.js",
   "types": "dist/lib/index.d.ts",
   "scripts": {
-    "test": "jest --coverage",
+    "test": "jest",
+    "test-coverage": "jest --coverage",
     "build": "tsc",
     "prepare": "husky install",
     "standard-version": "standard-version"
@@ -24,6 +25,8 @@
   "dependencies": {
     "@alex_neo/jest-expect-message": "^1.0.5",
     "@types/jest-expect-message": "^1.0.3",
+    "@types/webpack": "^5.28.0",
+    "@types/webpack-dev-server": "^4.5.1",
     "assets-webpack-plugin": "^7.1.1",
     "babel": "^6.23.0",
     "babel-loader": "^8.2.3",
@@ -35,7 +38,8 @@
     "mini-css-extract-plugin": "^2.4.5",
     "typescript": "^4.5.4",
     "webpack": "^5.65.0",
-    "webpack-cli": "^4.9.1"
+    "webpack-cli": "^4.9.1",
+    "webpack-dev-server": "^4.7.2"
   },
   "devDependencies": {
     "@babel/core": "^7.16.5",

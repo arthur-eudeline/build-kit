@@ -8,7 +8,6 @@ import defaultConfig, {
   defaultJavaScriptConfig
 } from '../../ConfigurationFiles/Webpack/DefaultConfig';
 import {
-  WebpackConfiguration,
   WebpackModuleRules, WebpackPlugin,
   WebpackPluginInitializer,
   WebpackRawConfiguration, WebpackStatsOptions
@@ -21,6 +20,9 @@ import CssMinimizerPlugin from "css-minimizer-webpack-plugin";
 import AssetsPlugin from 'assets-webpack-plugin';
 import {Logger} from "../Common/Logger";
 import chalk from "chalk";
+import {Configuration} from "webpack";
+import {Static} from "webpack-dev-server";
+import * as Path from "path";
 
 /**
  * A class helper to build WebPack Configuration files
@@ -96,6 +98,7 @@ export class WebpackConfigBuilder {
    */
   private readonly plugins:WebpackPluginInitializer[] = [];
   
+  
   /**
    * Defines if filenames will have a unique hash in their name or not
    *
@@ -127,7 +130,7 @@ export class WebpackConfigBuilder {
     this.defaultPlugins = {
       // Remove duplicate assets code
       DuplicatePackageCheckerPlugin: {
-        init: () => (new DuplicatePackageCheckerPlugin()) as WebpackPlugin,
+        init: () => (new DuplicatePackageCheckerPlugin()) as unknown as WebpackPlugin,
       },
 
       // Extract CSS content into different files
@@ -255,6 +258,7 @@ export class WebpackConfigBuilder {
     return this;
   }
   
+  
   /**
    * Defines if webpack will generate an "asset.json" file which will contain each file
    * path in it or not
@@ -321,15 +325,66 @@ export class WebpackConfigBuilder {
    * // Sets the output path to `src/assets/dist/`
    * builder.setOutputPath( path.resolve(__dirname, './src/assets/dist`) );
    *
+   * @example
+   * // Sets the output path to `src/assets/dist` and provide a relative path to simplify DevServer Configuration
+   * builder.setOutputPath( {
+   *    absolute: path.resolve(__dirname, './src/assets/dist`),
+   *    relative: './src/assets/dist',
+   * });
+   *
    * @param path Where to output the bundled files
    *
    * @return {WebpackConfigBuilder} the current builder instance
    */
-  public setOutputPath (path:string):WebpackConfigBuilder {
+  public setOutputPath (path:string|{ relative?: string, absolute: string }):WebpackConfigBuilder {
     if (!this.configuration.output)
       this.configuration.output = {};
+
+    // If the provided path is a string
+    if (typeof path === 'string') {
+      path = {absolute: path};
+    }
     
-    this.configuration.output.path = path;
+    // Throw an error if we don't have absolute path passed
+    if (path.absolute === undefined) {
+      Logger.error(new Error(`You must provide at least an ${ chalk.yellow.bold('absolute path') } to the ${ chalk.yellow.bold('builder.setOutputPath()') } method :
+      - ${ chalk.yellow.bold('builder.setOutputPath( path.resolve(__dirname, \'./src/assets/dist`) );') }
+      - ${ chalk.yellow.bold('builder.setOutputPath( {\n' +
+        '   absolute: path.resolve(__dirname, \'./src/assets/dist`),\n' +
+        '   relative: \'./src/assets/dist\',\n' +
+        '});\n')}
+      `));
+      process.exit(1);
+      
+      return this;
+    }
+    
+    // Throw an error if the path.absolute value is not absolute
+    if (!Path.isAbsolute(path.absolute)) {
+      Logger.error(new Error(`The output path you have given is not an absolute path. You can specify one by using :
+      - ${ chalk.yellow.bold('builder.setOutputPath( path.resolve(__dirname, \'./src/assets/dist`) );') }
+      - ${ chalk.yellow.bold('builder.setOutputPath( {\n' +
+        '   absolute: path.resolve(__dirname, \'./src/assets/dist`),\n' +
+        '   relative: \'./src/assets/dist\',\n' +
+        '});\n')}
+      `));
+      process.exit(1);
+      
+      return this;
+    }
+    
+    this.configuration.output.path = path.absolute;
+
+    // Required for the dev server
+    if (path.relative) {
+      path.relative = path.relative.replace(/^\./, '');
+      
+      this.configuration.output.publicPath = path.relative;
+      this.addDevServerStatic({
+        publicPath: path.relative,
+        directory: path.absolute,
+      });
+    }
     
     return this;
   }
@@ -353,6 +408,19 @@ export class WebpackConfigBuilder {
     return this.moduleRules;
   }
   
+  
+  /**
+   * Allow add static entry to the WebpackDevServer
+   * @param entry
+   */
+  public addDevServerStatic ( entry: Static ) : WebpackConfigBuilder {
+    if (!this.configuration.devServer.static)
+      this.configuration.devServer.static = [];
+    
+    this.configuration.devServer!.static.push(entry);
+    
+    return this;
+  }
   
   /**
    * Applies all the module rules to the real webpack configuration
@@ -407,8 +475,13 @@ export class WebpackConfigBuilder {
    * @private
    */
   private applyOptimization ():WebpackConfigBuilder {
-    if (!this.optimizationEnabled)
+    if (!this.optimizationEnabled) {
+      this.configuration.optimization = {
+        minimize: false,
+      };
+
       return this;
+    }
     
     this.configuration.optimization = {
       minimize: true,
@@ -521,8 +594,16 @@ export class WebpackConfigBuilder {
       Logger.error(new Error(`You must define an output path by using ${
         chalk.yellow.bold('WebpackConfigBuilder.setOutputPath()')
       }`));
-      console.log(process.env)
       process.exit(1);
+    }
+    
+    // If we don't have public path set and we try to run serve to use webpack-dev-server
+    if (!this.configuration.output.publicPath && process.argv.includes('serve')) {
+      Logger.warn(`DevServer may not work as expected as you have not provided a relative path to the ${ chalk.yellow.bold('builder.setOutputPath()') } method.\n` +
+      `You can provide one by using ${ chalk.yellow.bold('builder.setOutputPath({\n' +
+        ' absolute: path.resolve(__dirname, \'./src/assets/dist`),\n' +
+        ' relative: \'./src/assets/dist\',\n' +
+        '});\n')}`);
     }
   }
   
@@ -530,7 +611,7 @@ export class WebpackConfigBuilder {
   /**
    * Gets the real webpack configuration
    */
-  public build ():WebpackConfiguration {
+  public build ():Configuration {
     this
       // Compute filename configuration according to this.hashFilenamesEnabled
       .applyFilenames()
