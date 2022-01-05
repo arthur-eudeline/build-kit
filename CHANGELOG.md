@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### 0.0.6 (2022-01-05)
+
+
+### Bug Fixes
+
+* package.json main entry was pointing on the wrong file ([48edb03](https://github.com/arthur-eudeline/build-kit/commit/48edb032c3d0db0a5a52b3ee287b4a9145cc621c))
+
 ### 0.0.5 (2022-01-05)
 
 ### 0.0.4 (2022-01-03)
