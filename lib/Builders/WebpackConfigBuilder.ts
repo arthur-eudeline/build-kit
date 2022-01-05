@@ -21,6 +21,7 @@ import CssMinimizerPlugin from "css-minimizer-webpack-plugin";
 import AssetsPlugin from 'assets-webpack-plugin';
 import {Logger} from "../Common/Logger";
 import chalk from "chalk";
+import {Configuration} from "webpack";
 
 /**
  * A class helper to build WebPack Configuration files
@@ -96,6 +97,7 @@ export class WebpackConfigBuilder {
    */
   private readonly plugins:WebpackPluginInitializer[] = [];
   
+  
   /**
    * Defines if filenames will have a unique hash in their name or not
    *
@@ -127,7 +129,7 @@ export class WebpackConfigBuilder {
     this.defaultPlugins = {
       // Remove duplicate assets code
       DuplicatePackageCheckerPlugin: {
-        init: () => (new DuplicatePackageCheckerPlugin()) as WebpackPlugin,
+        init: () => (new DuplicatePackageCheckerPlugin()) as unknown as WebpackPlugin,
       },
 
       // Extract CSS content into different files
@@ -254,6 +256,7 @@ export class WebpackConfigBuilder {
     this.debugRulesNamesEnabled = enabled;
     return this;
   }
+  
   
   /**
    * Defines if webpack will generate an "asset.json" file which will contain each file
@@ -530,7 +533,7 @@ export class WebpackConfigBuilder {
   /**
    * Gets the real webpack configuration
    */
-  public build ():WebpackConfiguration {
+  public build ():Configuration {
     this
       // Compute filename configuration according to this.hashFilenamesEnabled
       .applyFilenames()

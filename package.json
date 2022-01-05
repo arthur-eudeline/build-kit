@@ -16,6 +16,7 @@
   "dependencies": {
     "@alex_neo/jest-expect-message": "^1.0.5",
     "@types/jest-expect-message": "^1.0.3",
+    "@types/webpack": "^5.28.0",
     "assets-webpack-plugin": "^7.1.1",
     "babel": "^6.23.0",
     "babel-loader": "^8.2.3",
