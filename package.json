@@ -2,7 +2,7 @@
   "name": "@arthur.eudeline/build-kit",
   "version": "0.0.5",
   "description": "A package that include several tools to help improve your project quality",
-  "main": "dist/lib/index.js",
+  "main": "dist/index.js",
   "types": "dist/lib/index.d.ts",
   "scripts": {
     "test": "jest",
