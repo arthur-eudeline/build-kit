@@ -394,7 +394,7 @@ export class WebpackConfigBuilder {
   
   
   /**
-   * Allow add static entry to the WebpackDevServer 
+   * Allow add static entry to the WebpackDevServer
    * @param entry
    */
   public addDevServerStatic ( entry: Static ) : WebpackConfigBuilder {
@@ -459,8 +459,13 @@ export class WebpackConfigBuilder {
    * @private
    */
   private applyOptimization ():WebpackConfigBuilder {
-    if (!this.optimizationEnabled)
+    if (!this.optimizationEnabled) {
+      this.configuration.optimization = {
+        minimize: false,
+      };
+
       return this;
+    }
     
     this.configuration.optimization = {
       minimize: true,

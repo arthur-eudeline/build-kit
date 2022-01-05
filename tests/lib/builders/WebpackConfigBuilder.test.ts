@@ -2,6 +2,7 @@ import {WebpackConfigBuilder} from "../../../lib/Builders/WebpackConfigBuilder";
 import MiniCssExtractPlugin from "mini-css-extract-plugin";
 import {DefinePlugin} from "webpack";
 import validate from "webpack/schemas/WebpackOptions.check"
+import {WebpackModuleRule} from "../../../@types/webpack";
 
 
 /**
@@ -59,28 +60,28 @@ test('Files names should be hashed by default', () => {
     .toContain('[contenthash]');
   
   // Fonts
-  const fontFilename = config.module.rules
+  const fontFilename = (config.module!.rules! as WebpackModuleRule[])
     .filter((rule) => rule.name === 'Font')[0].generator!.filename;
   
   expect(fontFilename, 'Fonts should be located in sub folders').toMatch(/^fonts\//);
   expect(fontFilename).toContain('[contenthash]');
   
   // Icons
-  const iconsFilename = config.module.rules
+  const iconsFilename = (config.module!.rules! as WebpackModuleRule[])
     .filter((rule) => rule.name === 'Icons')[0].generator!.filename;
   
   expect(iconsFilename, 'Icons should be located in `icons` sub folder').toMatch(/^icons\//);
   expect(iconsFilename).toContain('[contenthash]');
   
   // Images
-  const imagesFilename = config.module.rules
+  const imagesFilename = (config.module!.rules! as WebpackModuleRule[])
     .filter((rule) => rule.name === 'Images')[0].generator!.filename;
   
   expect(imagesFilename, 'Images should be located in `img` sub folder').toMatch(/^img\//);
   expect(imagesFilename).toContain('[contenthash]');
   
   // Because we were debugging rules, we must remove rule.name property before checking config
-  config.module.rules = config.module.rules.map((rule) => {
+  config.module!.rules = (config.module!.rules! as WebpackModuleRule[]).map((rule) => {
     delete rule.name;
     return rule;
   });
@@ -107,22 +108,22 @@ test('We should be able to turn off filename hashing', () => {
     .not.toContain('[contenthash]');
   
   // Fonts
-  const fontFilename = config.module.rules
+  const fontFilename = (config.module!.rules! as WebpackModuleRule[])
     .filter((rule) => rule.name === 'Font')[0].generator!.filename;
   expect(fontFilename).not.toContain('[contenthash]');
   
   // Icons
-  const iconsFilename = config.module.rules
+  const iconsFilename = (config.module!.rules! as WebpackModuleRule[])
     .filter((rule) => rule.name === 'Icons')[0].generator!.filename;
   expect(iconsFilename).not.toContain('[contenthash]');
   
   // Images
-  const imagesFilename = config.module.rules
+  const imagesFilename = (config.module!.rules! as WebpackModuleRule[])
     .filter((rule) => rule.name === 'Images')[0].generator!.filename;
   expect(imagesFilename).not.toContain('[contenthash]');
   
   // Because we were debugging rules, we must remove rule.name property before checking config
-  config.module.rules = config.module.rules.map((rule) => {
+  config.module!.rules =(config.module!.rules! as WebpackModuleRule[]).map((rule) => {
     delete rule.name;
     return rule;
   });
@@ -141,6 +142,25 @@ test('We should be able to set output path', () => {
   
   expect(builder.build().output!.path).toEqual('/dist');
   expect(validate(builder.build())).toEqual(true);
+});
+
+/**
+ * Checks if we can enable and disable optimization
+ */
+test('We should be able to disable optimization', () => {
+  const builder = new WebpackConfigBuilder();
+  
+  expect(
+    builder.build().optimization!.minimize,
+    'By default, Optimization should be enabled'
+  ).toEqual(true);
+  
+  builder.enableOptimization(false);
+  
+  expect(
+    builder.build().optimization!.minimize,
+    'We should be able to turn off Optimization'
+  ).toEqual(false);
 });
 
 /**
