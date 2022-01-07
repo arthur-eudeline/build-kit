@@ -1,7 +1,7 @@
-import {WebpackModuleRule} from "../../@types/webpack";
+import {WebpackModuleRule} from "../@types/webpack";
 import {Configuration} from "webpack";
 import MiniCssExtractPlugin from "mini-css-extract-plugin";
-import BabelConfig from "./BabelConfig";
+import BabelConfig from "./babel-config";
 
 export const defaultJavaScriptConfig:WebpackModuleRule = {
   name: 'JavaScript',
@@ -70,7 +70,7 @@ export const defaultImagesConfig:WebpackModuleRule = {
   }
 };
 
-const defaultConfig:Configuration = {
+const webpackConfig:Configuration = {
   // Webpack log config
   stats: {
     assets: true,
@@ -135,4 +135,4 @@ const defaultConfig:Configuration = {
   },
 };
 
-export default defaultConfig;
+export default webpackConfig;
