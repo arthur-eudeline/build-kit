@@ -9,7 +9,8 @@
     "test-coverage": "jest --coverage",
     "build": "tsc",
     "prepare": "husky install",
-    "standard-version": "standard-version"
+    "standard-version": "standard-version",
+    "pack": "npm run build && npm pack --pack-destination ../"
   },
   "author": "Arthur Eudeline <contact@arthur-eudeline.com>",
   "license": "MIT",
