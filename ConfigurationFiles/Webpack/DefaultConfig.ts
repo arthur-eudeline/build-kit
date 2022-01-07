@@ -1,7 +1,7 @@
 import {WebpackModuleRule} from "../../@types/webpack";
 import {Configuration} from "webpack";
-import {join} from "path";
-const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+import MiniCssExtractPlugin from "mini-css-extract-plugin";
+import BabelConfig from "./BabelConfig";
 
 export const defaultJavaScriptConfig:WebpackModuleRule = {
   name: 'JavaScript',
@@ -9,6 +9,7 @@ export const defaultJavaScriptConfig:WebpackModuleRule = {
   use: [
     {
       loader: "babel-loader",
+      options: BabelConfig()
     },
   ],
   exclude: /node_modules/,

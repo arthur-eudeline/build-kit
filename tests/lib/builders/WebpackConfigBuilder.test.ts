@@ -1,8 +1,8 @@
 import {WebpackConfigBuilder} from "../../../lib/Builders/WebpackConfigBuilder";
 import MiniCssExtractPlugin from "mini-css-extract-plugin";
-import {DefinePlugin} from "webpack";
+import {DefinePlugin, LoaderModule, RuleSetRule, RuleSetUseItem} from "webpack";
 import validate from "webpack/schemas/WebpackOptions.check"
-import {WebpackModuleRule} from "../../../@types/webpack";
+import {WebpackConfiguration, WebpackModuleRule} from "../../../@types/webpack";
 import * as path from "path";
 import consola from "consola";
 
@@ -256,6 +256,18 @@ describe('Plugins support', () => {
  *
  */
 describe('Output Path', () => {
+  let mockExit: jest.SpyInstance;
+  let mockConsola: jest.SpyInstance;
+  
+  beforeAll(() => {
+    mockExit = jest.spyOn(process, 'exit')
+      // @ts-ignore
+      .mockImplementation((code?:number) : never => {} );
+  
+    mockConsola = jest.spyOn(consola, 'error')
+      .mockImplementation( args => {});
+  })
+  
   test('Output path should be able to be set as string', () => {
     const config = (new WebpackConfigBuilder())
       .setOutputPath( path.join(__dirname, 'test') )
@@ -273,13 +285,6 @@ describe('Output Path', () => {
     expect(config.output!.path).toEqual( '/Users/tests/my-path' );
     expect(validate(config)).toEqual(true);
   });
-  
-  const mockExit = jest.spyOn(process, 'exit')
-    // @ts-ignore
-    .mockImplementation((code?:number) : never => {} );
-  
-  const mockConsola = jest.spyOn(consola, 'error')
-    .mockImplementation( args => {});
   
   test('Should throw an error if path is not absolute', () => {
     mockConsola.mockReset();
@@ -317,5 +322,69 @@ describe('Output Path', () => {
   
     expect(mockExit).toHaveBeenLastCalledWith(1);
     expect(mockConsola).toHaveBeenCalled();
+  });
+  
+  afterAll(() => {
+    mockExit.mockRestore();
+    mockConsola.mockRestore();
+  })
+});
+
+
+/**
+ * Babel loader tests
+ */
+describe('Babel Loader', () => {
+  
+  const getJSRules = (config: WebpackConfiguration) : WebpackModuleRule | undefined => {
+    const result = config.module.rules.filter( (value:WebpackModuleRule) => {
+      return value.test!.toString() === '/\\.(ts)|(js)$/';
+    } );
+    
+    return result.length > 0
+      ? result[0]
+      : undefined;
+  }
+  
+  const getBabelConfig = (config: WebpackConfiguration): RuleSetRule | undefined => {
+    const result = getJSRules(config);
+    
+    if (!result || !Array.isArray(result.use))
+      return;
+  
+    const loaders = (result.use as RuleSetRule[]).filter( (value:RuleSetRule) => value.loader === 'babel-loader');
+    
+    if (loaders.length < 1)
+      return;
+    
+    return loaders[0];
+  }
+  
+  const DefaultBabelConfig = require ('../../../ConfigurationFiles/Webpack/BabelConfig');
+  
+  test('Should get default value by default', () => {
+    const config = new WebpackConfigBuilder().build();
+
+    expect(getBabelConfig(config as WebpackConfiguration)?.options).toMatchObject( DefaultBabelConfig() );
+    expect(validate(config)).toEqual(true);
+  });
+  
+  test('Should be able to change default value', () => {
+    const config = (new WebpackConfigBuilder())
+      .setBabelOptions( (options) => {
+        delete options.sourceType;
+        return options;
+      } )
+      .build();
+    
+    const babelConfig = getBabelConfig(config as WebpackConfiguration)?.options
+    expect(babelConfig).not.toBeUndefined();
+    
+    expect(babelConfig).not.toMatchObject( DefaultBabelConfig() );
+    
+    // @ts-ignore
+    expect(babelConfig?.sourceType).toBeUndefined();
+    
+    expect(validate(config)).toEqual(true);
   });
 });

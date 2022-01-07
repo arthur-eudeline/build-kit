@@ -23,6 +23,7 @@ import chalk from "chalk";
 import {Configuration} from "webpack";
 import {Static} from "webpack-dev-server";
 import * as Path from "path";
+import {BabelFile, TransformOptions} from "@babel/core";
 
 /**
  * A class helper to build WebPack Configuration files
@@ -232,6 +233,30 @@ export class WebpackConfigBuilder {
   public setAssetCleaningWhitelist (keepAssets:(fileName:string) => boolean):WebpackConfigBuilder {
     this.keepAssetsCB = keepAssets;
     
+    return this;
+  }
+  
+  
+  /**
+   * Allow to modify the babel loader options
+   * @param setter
+   */
+  public setBabelOptions ( setter:((options:TransformOptions) => TransformOptions) ) : WebpackConfigBuilder {
+    // Throw an error if we don't find the babel rules set
+    if (
+      !this.moduleRules.javaScript.use
+      || !Array.isArray(this.moduleRules.javaScript.use)
+      || !this.moduleRules.javaScript.use[0]
+      || typeof this.moduleRules.javaScript.use[0] !== 'object'
+      || this.moduleRules.javaScript.use[0].loader !== 'babel-loader'
+    ) {
+      Logger.error(`The ${ chalk.yellow.bold('Babel Loader') } cannot be found into the JavaScript file rules. Here is what has been found instead :
+      ${ this.moduleRules.javaScript.rules }`);
+      process.exit(1);
+      return this;
+    }
+    
+    this.moduleRules.javaScript.use![0].options = setter(this.moduleRules.javaScript.use![0].options as TransformOptions);
     return this;
   }
   
