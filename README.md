@@ -47,8 +47,7 @@ npm test
 ## Roadmap
 
 - [x] Webpack support
-- [ ] Babel support
-
+- [x] Babel support
 - [ ] TypeScript support
 - [ ] Tailwind support
 - [ ] Husky + CommitLint support
