@@ -6,14 +6,14 @@ import defaultConfig, {
   defaultIconsConfig,
   defaultImagesConfig,
   defaultJavaScriptConfig
-} from '../../ConfigurationFiles/Webpack/DefaultConfig';
+} from '../../configuration-files/webpack-config';
 import {
   WebpackModuleRules, WebpackPlugin,
   WebpackPluginInitializer,
   WebpackRawConfiguration, WebpackStatsOptions
 } from "../../@types/webpack";
 import {cloneDeep} from 'lodash';
-import {DefinePlugin} from "webpack";
+import {DefinePlugin, RuleSetRule, RuleSetUse, RuleSetUseItem} from "webpack";
 import DuplicatePackageCheckerPlugin from 'duplicate-package-checker-webpack-plugin';
 import MiniCssExtractPlugin from "mini-css-extract-plugin";
 import CssMinimizerPlugin from "css-minimizer-webpack-plugin";
@@ -66,6 +66,12 @@ export class WebpackConfigBuilder {
    * @private
    */
   private defaultPluginsEnabled:boolean = true;
+  
+  /**
+   * Allow or disallow babel default options
+   * @private
+   */
+  private defaultBabelOptionsEnabled:boolean = true;
   
   /**
    * Whether or not to optimize assets code
@@ -257,6 +263,20 @@ export class WebpackConfigBuilder {
     }
     
     this.moduleRules.javaScript.use![0].options = setter(this.moduleRules.javaScript.use![0].options as TransformOptions);
+    return this;
+  }
+  
+  
+  /**
+   * Enable or disable the use of default BabelOptions.
+   * If enabled, you can ONLY modify your babel options from webpack.config.js as any babel file will be ignored by webpack.
+   * You must disable options to add your own babel file. You can still use default babel options as a preset as shown in the docs
+   *
+   * @see https://github.com/arthur-eudeline/build-kit/blob/master/docs/webpack-config-builder.md#babel-support
+   * @param enabled
+   */
+  public enableDefaultBabelOptions(enabled: boolean) : WebpackConfigBuilder {
+    this.defaultBabelOptionsEnabled = enabled;
     return this;
   }
   
@@ -454,10 +474,15 @@ export class WebpackConfigBuilder {
   private applyModulesRules ():WebpackConfigBuilder {
     const rules =  Object.values(cloneDeep(this.getModulesRules()));
     
-    // Remove name property which is not valid for webpack
-    if (!this.debugRulesNamesEnabled)
       rules.map((value) => {
-        delete value.name;
+        // Remove options from the babel loader if we don't want default rules
+        if (value.name === 'JavaScript' && !this.defaultBabelOptionsEnabled)
+          delete (value.use as Array<RuleSetRule>)[0]!.options;
+        
+        // Remove name property which is not valid for webpack
+        if (!this.debugRulesNamesEnabled)
+          delete value.name;
+        
         return value;
       });
     

@@ -1,6 +1,8 @@
-import {WebpackConfigBuilder} from "../../../lib/Builders/WebpackConfigBuilder";
+import {WebpackConfigBuilder} from "../../../lib/builders/webpack-config-builder";
+// @ts-ignore
 import MiniCssExtractPlugin from "mini-css-extract-plugin";
-import {DefinePlugin, LoaderModule, RuleSetRule, RuleSetUseItem} from "webpack";
+import {DefinePlugin, RuleSetRule} from "webpack";
+// @ts-ignore
 import validate from "webpack/schemas/WebpackOptions.check"
 import {WebpackConfiguration, WebpackModuleRule} from "../../../@types/webpack";
 import * as path from "path";
@@ -360,7 +362,7 @@ describe('Babel Loader', () => {
     return loaders[0];
   }
   
-  const DefaultBabelConfig = require ('../../../ConfigurationFiles/Webpack/BabelConfig');
+  const DefaultBabelConfig = require ('../../../configuration-files/babel-config');
   
   test('Should get default value by default', () => {
     const config = new WebpackConfigBuilder().build();
@@ -387,4 +389,13 @@ describe('Babel Loader', () => {
     
     expect(validate(config)).toEqual(true);
   });
+  
+  test('We should be able to remove default babel options', () => {
+    const config = new WebpackConfigBuilder()
+      .enableDefaultBabelOptions(false)
+      .build();
+  
+    expect(getBabelConfig(config as WebpackConfiguration)?.options).toBeUndefined();
+    expect(validate(config)).toEqual(true);
+  })
 });
