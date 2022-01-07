@@ -1,8 +1,8 @@
 {
   "name": "@arthur.eudeline/build-kit",
-  "version": "0.0.4",
+  "version": "0.0.6",
   "description": "A package that include several tools to help improve your project quality",
-  "main": "dist/lib/index.js",
+  "main": "dist/index.js",
   "types": "dist/lib/index.d.ts",
   "scripts": {
     "test": "jest",
@@ -23,13 +23,16 @@
   },
   "private": false,
   "dependencies": {
-    "@alex_neo/jest-expect-message": "^1.0.5",
-    "@types/jest-expect-message": "^1.0.3",
     "@types/webpack": "^5.28.0",
     "@types/webpack-dev-server": "^4.5.1",
     "assets-webpack-plugin": "^7.1.1",
     "babel": "^6.23.0",
     "babel-loader": "^8.2.3",
+    "@babel/core": "^7.16.5",
+    "@babel/plugin-proposal-class-properties": "^7.14.5",
+    "@babel/plugin-transform-runtime": "^7.14.5",
+    "@babel/preset-env": "^7.16.5",
+    "@babel/preset-typescript": "^7.16.5",
     "chalk": "^4.1.2",
     "consola": "^2.15.3",
     "css-minimizer-webpack-plugin": "^3.3.1",
@@ -42,11 +45,8 @@
     "webpack-dev-server": "^4.7.2"
   },
   "devDependencies": {
-    "@babel/core": "^7.16.5",
-    "@babel/plugin-proposal-class-properties": "^7.14.5",
-    "@babel/plugin-transform-runtime": "^7.14.5",
-    "@babel/preset-env": "^7.16.5",
-    "@babel/preset-typescript": "^7.16.5",
+    "@alex_neo/jest-expect-message": "^1.0.5",
+    "@types/jest-expect-message": "^1.0.3",
     "@commitlint/cli": "^16.0.1",
     "@commitlint/config-conventional": "^16.0.0",
     "@swc/core": "^1.2.124",
@@ -62,10 +62,7 @@
     "husky": "^7.0.4",
     "jest": "^27.4.5",
     "jest-expect-message": "^1.0.2",
-    "standard-version": "^9.3.2",
-    "ts-loader": "^9.2.6",
-    "ts-node": "^10.4.0",
-    "uglify-js": "^3.14.5"
+    "standard-version": "^9.3.2"
   },
   "jest": {
     "setupFilesAfterEnv": [
