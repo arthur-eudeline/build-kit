@@ -24,6 +24,7 @@ This module aims to help you quickly build Webpack configurations for your proje
     - [Correctly set output path](#correctly-set-output-path)
     - [Add static entries](#add-static-entries)
     - [How to start the server](#start-the-server)
+  - [Babel Support](#babel-support)
 
 
 
@@ -483,3 +484,52 @@ npm run serve
 
 > To stop it, just hit CTRL + C in the terminal
 
+
+
+
+
+<a name="babel-support"></a>
+
+### Babel Support
+
+Babel is supported by default and a default babel configuration is included into the build kit. You can still modify and provide your own configuration from your `webpack.config.js` file :
+
+```js
+WebpackConfigBuilder()
+	// Modifiy the default configuration 
+	.setBabelOptions( (defaultOptions) => {
+ 		defaultOptions.plugins.push('@babel/plugin-transform-runtime');
+  	return defaultOptions;
+	} )
+	// Or override it with your own custom configuration
+	.setBabelOptions( (defaultOptions) => ({
+  	plugins: [ ... ],
+  	presets: [ ... ]
+	}))
+```
+
+
+
+If you want to provide your options to a Babel configuration object, you still can :
+
+1. In your `webpack.config.js` disable the default Babel options, otherwise **your Babel file will be ignored by Babel**.
+
+   ```js
+   // webpack.config.js
+   WebpackConfigBuilder()
+   	.enableDefaultBabelOptions( false ) 
+   ```
+
+2. Create a `.babelrc` file in your project's root folder :
+
+   ```jsonc
+   // .babelrc
+   {
+   	// You still can use build-kit default configuration as a preset
+   	"presets": [
+       "@arthur.eudeline/build-kit/configuration-files/babel-config"
+     ]
+   }
+   ```
+
+   
