@@ -10,10 +10,10 @@ import defaultConfig, {
 import {
   WebpackModuleRules, WebpackPlugin,
   WebpackPluginInitializer,
-  WebpackRawConfiguration, WebpackStatsOptions
+  WebpackRawConfiguration, WebpackStatsOptions, WebpackModuleLoaders
 } from "../../@types/webpack";
 import {cloneDeep} from 'lodash';
-import {DefinePlugin, RuleSetRule, RuleSetUse, RuleSetUseItem} from "webpack";
+import {DefinePlugin,} from "webpack";
 import DuplicatePackageCheckerPlugin from 'duplicate-package-checker-webpack-plugin';
 import MiniCssExtractPlugin from "mini-css-extract-plugin";
 import CssMinimizerPlugin from "css-minimizer-webpack-plugin";
@@ -24,6 +24,7 @@ import {Configuration} from "webpack";
 import {Static} from "webpack-dev-server";
 import * as Path from "path";
 import {BabelFile, TransformOptions} from "@babel/core";
+import {BundleDeclarationsWebpackPlugin} from "bundle-declarations-webpack-plugin";
 
 /**
  * A class helper to build WebPack Configuration files
@@ -48,7 +49,7 @@ export class WebpackConfigBuilder {
    * @private
    */
   private readonly defaultPlugins:{
-    MiniCssExtractPlugin:WebpackPluginInitializer<MiniCssExtractPlugin.PluginOptions>
+    MiniCssExtractPlugin:WebpackPluginInitializer<MiniCssExtractPlugin.PluginOptions>,
     [key:string]:WebpackPluginInitializer,
   };
   
@@ -99,12 +100,17 @@ export class WebpackConfigBuilder {
   private assetFileEnabled:boolean = true;
   
   /**
+   * Whether or not to add declaration files
+   * @private
+   */
+  private enableTypeScriptDeclarations:boolean = true;
+  
+  /**
    * Holds the custom plugins later added to the configuration by the user
    * through WebpackConfigBuilder.addPlugin()
    * @private
    */
   private readonly plugins:WebpackPluginInitializer[] = [];
-  
   
   /**
    * Defines if filenames will have a unique hash in their name or not
@@ -118,6 +124,12 @@ export class WebpackConfigBuilder {
    * @private
    */
   private keepAssetsCB?:(fileName:string) => boolean;
+  
+  /**
+   * Holds the different webpack entries
+   * @private
+   */
+  private readonly entries:{inputPath:string, outputName:string}[] = [];
   
   
   /**
@@ -147,6 +159,22 @@ export class WebpackConfigBuilder {
         },
         init: (options:MiniCssExtractPlugin.PluginOptions) => new MiniCssExtractPlugin(options),
       } as WebpackPluginInitializer<MiniCssExtractPlugin.PluginOptions>,
+      
+      // Allow TypeScript declaration files generation
+      BundleDeclarationWebpackPlugin: {
+        init: () => {
+          const output = [];
+
+          for (const entry of this.entries) {
+            output.push(new BundleDeclarationsWebpackPlugin({
+              entry: entry.inputPath,
+              outFile: entry.outputName + ".d.ts",
+            }));
+          }
+
+          return output;
+        },
+      },
     };
   }
   
@@ -170,6 +198,8 @@ export class WebpackConfigBuilder {
   
   
     (this.configuration.entry as Record<string, string>)[outputName] = inputPath;
+    
+    this.entries.push({inputPath, outputName});
     
     return this;
   }
@@ -248,21 +278,23 @@ export class WebpackConfigBuilder {
    * @param setter
    */
   public setBabelOptions ( setter:((options:TransformOptions) => TransformOptions) ) : WebpackConfigBuilder {
+    const babelRulesSet: WebpackModuleLoaders = (this.moduleRules.javaScript.use as WebpackModuleLoaders[]).filter(loaderOptions => loaderOptions.loader === 'babel-loader')[0];
+    
     // Throw an error if we don't find the babel rules set
     if (
       !this.moduleRules.javaScript.use
+      || babelRulesSet === undefined
       || !Array.isArray(this.moduleRules.javaScript.use)
-      || !this.moduleRules.javaScript.use[0]
-      || typeof this.moduleRules.javaScript.use[0] !== 'object'
-      || this.moduleRules.javaScript.use[0].loader !== 'babel-loader'
+      || typeof babelRulesSet !== 'object'
+      || babelRulesSet.loader !== 'babel-loader'
     ) {
       Logger.error(`The ${ chalk.yellow.bold('Babel Loader') } cannot be found into the JavaScript file rules. Here is what has been found instead :
       ${ this.moduleRules.javaScript.rules }`);
       process.exit(1);
       return this;
     }
-    
-    this.moduleRules.javaScript.use![0].options = setter(this.moduleRules.javaScript.use![0].options as TransformOptions);
+  
+    (this.moduleRules.javaScript.use![0] as WebpackModuleLoaders).options = setter(babelRulesSet.options as TransformOptions);
     return this;
   }
   
@@ -292,6 +324,11 @@ export class WebpackConfigBuilder {
     return this;
   }
   
+  
+  public enableTypescriptDeclaration(enabled:boolean):WebpackConfigBuilder {
+    this.enableTypeScriptDeclarations = enabled;
+    return this;
+  }
   
   /**
    * Keeps or remove rules[].name which are handful for tests but
@@ -467,6 +504,7 @@ export class WebpackConfigBuilder {
     return this;
   }
   
+  
   /**
    * Applies all the module rules to the real webpack configuration
    * @private
@@ -475,9 +513,16 @@ export class WebpackConfigBuilder {
     const rules =  Object.values(cloneDeep(this.getModulesRules()));
     
       rules.map((value) => {
-        // Remove options from the babel loader if we don't want default rules
-        if (value.name === 'JavaScript' && !this.defaultBabelOptionsEnabled)
-          delete (value.use as Array<RuleSetRule>)[0]!.options;
+        if (value.name === 'JavaScript') {
+          // Remove options from the babel loader if we don't want default rules
+          if ( !this.defaultBabelOptionsEnabled )
+            delete (value.use as Array<WebpackModuleLoaders>).filter((rule) => rule.loader === "babel-loader")[0]!.options;
+  
+          if ( !this.enableTypeScriptDeclarations ) {
+            // Remove TS Loader to generate declarations file
+            value.use = (value.use as Array<WebpackModuleLoaders>).filter((rule) => rule.loader !== "ts-loader");
+          }
+        }
         
         // Remove name property which is not valid for webpack
         if (!this.debugRulesNamesEnabled)
@@ -498,6 +543,9 @@ export class WebpackConfigBuilder {
    * @private
    */
   private applyPlugins ():WebpackConfigBuilder {
+    if (!this.enableTypeScriptDeclarations)
+      delete this.defaultPlugins.BundleDeclarationWebpackPlugin;
+    
     // Merge default plugins if they are enabled with user provided plugins
     const plugins:WebpackPluginInitializer[] = [
       ...(this.defaultPluginsEnabled ? Object.values(this.defaultPlugins) : []),
@@ -509,7 +557,14 @@ export class WebpackConfigBuilder {
     
     // Initialize each plugin
     for (const initializer of plugins) {
-      this.configuration.plugins.push(initializer.init(initializer.options));
+      const initialized = initializer.init(initializer.options);
+      if (Array.isArray(initialized)) {
+        for (const single of initialized) {
+          this.configuration.plugins.push(single)
+        }
+      } else {
+        this.configuration.plugins.push(initialized);
+      }
     }
     
     // Add environment values if some has been added
