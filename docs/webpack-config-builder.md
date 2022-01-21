@@ -15,6 +15,7 @@ This module aims to help you quickly build Webpack configurations for your proje
   - [Asset file system](#asset-file-system)
     - [Choosing asset file format](#choosing-asset-file-format)
   - [Output Cleaning](#output-cleaning)
+    - [Keeping several builds](#keeping-several-builds)
   - [Optimization](#optimization)
   - [Webpack plugins management](#webpack-plugin-management)
     - [Add new plugins](#add-new-plugins)
@@ -271,27 +272,49 @@ WebpackConfigBuilder()
 	.enableOutputCleaning(true)
 ```
 
-You can also define custom files which will not be deleted by using `.setAssetCleaningWhitelist()` method :
+You can also define custom files which will not be deleted by using `.addFilesToCleaningWhitelist()` method :
 
 ```js
 // Using a full filename
 WebpackConfigBuilder()
 	.enableOutputCleaning(true)
 	// Prevents my-file-to-preverse.json to be cleaned by webpack
-	.setAssetCleaningWhitelist( (assetName) => {
-  	return assetName.includes('my-file-to-preserve.json');
-	})
+	.addFilesToCleaningWhitelist('my-file-to-preserve.json')
 
 // Using a regex
 WebpackConfigBuilder()
 	.enableOutputCleaning(true)
 	// Prevents .json files to be cleaned by webpack
-	.setAssetCleaningWhitelist( (assetName) => {
-  	return assetName.match(/\.json$/);
-	})
+	.addFilesToCleaningWhitelist( /\.json$/ );
+
+// Or you can pass multiple parameters at one
+WebpackConfigBuilder()
+	.enableOutputCleaning(true)
+	.addFilesToCleaningWhitelist( 'my-file-to-preserve.json', /\.json$/ );
 ```
 
 > `assetName` is a string representing the asset file name
+
+
+
+<a name="keeping-several-builds"></a>
+
+#### Keeping several builds 
+
+In some cases, you will need to keep output files coming from older builds. To achieve that, you can specify the number of builds you want to keep to the `enableOutputCleaning` method. 
+
+- If you set `0`, you will only keep your current build
+- If you set `2`, you will keep your current build and the two previous ones
+
+```js
+WebpackConfigBuilder()
+	.enableOutputCleaning(true, 0) // Default
+
+WebpackConfigBuilder()
+	.enableOutputCleaning(true, 1) // Keep the last build
+```
+
+
 
 
 

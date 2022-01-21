@@ -1,5 +1,5 @@
 import {RuleSetRule, WebpackPluginInstance, DefinePlugin, StatsOptions} from "webpack";
-import {Configuration} from 'webpack/types.d.ts';
+import {Configuration} from 'webpack';
 
 
 export type WebpackModuleRule = RuleSetRule & { name?: string };
