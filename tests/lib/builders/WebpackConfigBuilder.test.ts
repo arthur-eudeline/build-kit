@@ -1,12 +1,13 @@
 import {WebpackConfigBuilder} from "../../../lib/builders/webpack-config-builder";
 // @ts-ignore
 import MiniCssExtractPlugin from "mini-css-extract-plugin";
-import {DefinePlugin, RuleSetRule} from "webpack";
+import {DefinePlugin, RuleSetRule, RuleSetUseItem} from "webpack";
 // @ts-ignore
 import validate from "webpack/schemas/WebpackOptions.check"
 import {WebpackConfiguration, WebpackModuleRule} from "../../../@types/webpack";
 import * as path from "path";
 import consola from "consola";
+import BundleDeclarationsWebpackPlugin from "bundle-declarations-webpack-plugin";
 
 
 test('Configuration should be valid by default', () => {
@@ -398,4 +399,50 @@ describe('Babel Loader', () => {
     expect(getBabelConfig(config as WebpackConfiguration)?.options).toBeUndefined();
     expect(validate(config)).toEqual(true);
   })
+});
+
+describe('TypeScript loader', () => {
+  test('Presence if true', () => {
+    const builder = new WebpackConfigBuilder();
+    builder.addEntry('/test/test-file.ts', 'test');
+    builder.debugRulesName(true);
+    builder.enableTypescriptDeclaration(true);
+    
+    const config = builder.build();
+    const javaScriptLoader:WebpackModuleRule = (config.module!.rules as WebpackModuleRule[]).filter(rule => rule.name! === 'JavaScript')[0]!;
+    
+    expect((javaScriptLoader.use as { loader:string }[]).filter(loader => loader.loader === 'ts-loader')).toHaveLength(1);
+    
+    const declarationPlugins = config.plugins!.filter(plugin => plugin instanceof BundleDeclarationsWebpackPlugin);
+    // @ts-ignore
+    const {outFile, entry} = declarationPlugins[0].options;
+    expect(declarationPlugins).toHaveLength(1);
+    expect(entry).toEqual("/test/test-file.ts");
+    expect(outFile).toEqual("test.d.ts");
+    
+    // @ts-ignore
+    config.module!.rules.map(rule => { delete rule.name!; });
+    
+    expect(validate(config)).toEqual(true);
+  });
+  
+  test('Absence if false', () => {
+    const builder = new WebpackConfigBuilder();
+    builder.addEntry('/test/test-file.ts', 'test');
+    builder.debugRulesName(true);
+    builder.enableTypescriptDeclaration(false);
+  
+    const config = builder.build();
+    const javaScriptLoader:WebpackModuleRule = (config.module!.rules as WebpackModuleRule[]).filter(rule => rule.name! === 'JavaScript')[0]!;
+  
+    expect((javaScriptLoader.use as { loader:string }[]).filter(loader => loader.loader === 'ts-loader')).toHaveLength(0);
+  
+    const declarationPlugins = config.plugins!.filter(plugin => plugin instanceof BundleDeclarationsWebpackPlugin);
+    expect(declarationPlugins).toHaveLength(0);
+  
+    // @ts-ignore
+    config.module!.rules.map(rule => { delete rule.name!; });
+  
+    expect(validate(config)).toEqual(true);
+  });
 });
