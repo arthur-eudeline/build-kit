@@ -10,7 +10,7 @@ import defaultConfig, {
 import {
   WebpackModuleRules, WebpackPlugin,
   WebpackPluginInitializer,
-  WebpackRawConfiguration, WebpackStatsOptions, WebpackModuleLoaders
+  WebpackRawConfiguration, WebpackStatsOptions, WebpackModuleLoaders, WebpackAssetFileFormat
 } from "../../@types/webpack";
 import {cloneDeep} from 'lodash';
 import {DefinePlugin,} from "webpack";
@@ -23,7 +23,7 @@ import chalk from "chalk";
 import {Configuration} from "webpack";
 import {Static} from "webpack-dev-server";
 import * as Path from "path";
-import {BabelFile, TransformOptions} from "@babel/core";
+import {TransformOptions} from "@babel/core";
 import {BundleDeclarationsWebpackPlugin} from "bundle-declarations-webpack-plugin";
 
 /**
@@ -98,6 +98,12 @@ export class WebpackConfigBuilder {
    * @private
    */
   private assetFileEnabled:boolean = true;
+  
+  /**
+   * Defines the format of the asset json file format
+   * @private
+   */
+  private assetFileFormat:WebpackAssetFileFormat = 'json';
   
   /**
    * Whether or not to add declaration files
@@ -345,9 +351,11 @@ export class WebpackConfigBuilder {
    * Defines if webpack will generate an "asset.json" file which will contain each file
    * path in it or not
    * @param enabled
+   * @param fileFormat
    */
-  public enableAssetFile (enabled:boolean):WebpackConfigBuilder {
+  public enableAssetFile (enabled:boolean, fileFormat:WebpackAssetFileFormat = 'json'):WebpackConfigBuilder {
     this.assetFileEnabled = enabled;
+    this.assetFileFormat = fileFormat;
     return this;
   }
   
@@ -648,7 +656,7 @@ export class WebpackConfigBuilder {
 
     this.configuration.plugins.push(new AssetsPlugin({
       path: outputPath ? outputPath : './',
-      filename: 'assets.json',
+      filename: `assets.${this.assetFileFormat}`,
       includeAllFileTypes: true,
       entrypoints: true,
       removeFullPathAutoPrefix: true,
@@ -681,7 +689,13 @@ export class WebpackConfigBuilder {
           // }
         }
 
-        return JSON.stringify(assets, null, 2);
+        const assetsJSON = JSON.stringify(assets, null, 2);
+        
+        if (this.assetFileFormat === "json") {
+          return assetsJSON;
+        } else {
+          return `<?php $assetsContent = json_decode('${assetsJSON}', true);`;
+        }
       },
     }));
     

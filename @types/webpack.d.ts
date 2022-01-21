@@ -22,3 +22,5 @@ export type WebpackRawConfiguration = Configuration;
 export type WebpackDefinePlugin = DefinePlugin;
 
 export type WebpackStatsOptions = StatsOptions;
+
+export type WebpackAssetFileFormat = 'json' | 'php';

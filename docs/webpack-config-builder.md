@@ -13,6 +13,7 @@ This module aims to help you quickly build Webpack configurations for your proje
   - [Entries](#entries)
   - [Filename hash](#filename-hash)
   - [Asset file system](#asset-file-system)
+    - [Choosing asset file format](#choosing-asset-file-format)
   - [Output Cleaning](#output-cleaning)
   - [Optimization](#optimization)
   - [Webpack plugins management](#webpack-plugin-management)
@@ -170,7 +171,17 @@ To help you to deal with hashed names, you can use the `assets.json` generated f
 
 ### Asset file system
 
-The asset file generation can be very useful combined to the filename hashing system. When enabled, webpack will generate an `assets.json` file at the root of your output path. 
+The asset file generation can be very useful combined to the filename hashing system. When enabled, webpack will generate an `assets.json` file at the root of your output path. It is enabled by default, but you can change it like this :
+
+```js
+// Enable (by default) the asset file with JSON format
+WebpackConfigBuilder().enableAssetFile(true);
+
+// Disabled
+WebpackConfigBuilder().enableAssetFile(ƒalse);
+```
+
+
 
 This file will contain each generated file path that you must include on your web page. Each entry is corresponding to one of your entry point and lists all files generated for this entry. Here is an example of what this file will contain :
 
@@ -198,6 +209,52 @@ This file will contain each generated file path that you must include on your we
 ```
 
 > `__OUTPUT_PATH__/assets.json`
+
+
+
+<a name="choosing-asset-file-format"></a>
+
+#### Choosing asset file format
+
+You also have the possibility to choose the ouput format of your asset file format. For very specific cases it can be useful. For my own experience of WordPress developer, I know that some system caches can be very tricky to work with. A JSON file will be less purgeable than a PHP file which will be much easier to refresh from cache and avoid loading deleted files after the upload of new hashed files.
+
+```js
+// Enable (by default) the asset file with JSON format
+WebpackConfigBuilder().enableAssetFile(true);
+
+// Writes the asset file in PHP format
+WebpackConfigBuilder().enableAssetFile(true, 'php');
+
+// Writes the asset file in JSON format
+WebpackConfigBuilder().enableAssetFile(true, 'json');
+```
+
+If you choose to write your asset file in php, it will look like this
+
+```php
+<?php $assetsContent = json_decode('{
+  "__OUTPUT_NAME__": {
+    "css": [
+      "__CSS_FILE_1__",
+      "__CSS_FILE_2__"
+    ],
+    "js": [
+      "__JS_FILE_1__",
+      "__JS_FILE_2__"
+    ]
+  },
+  "modules/main": {
+    "css": [
+      "modules/main/main.35f447259ce880869d82.min.css"
+    ],
+    "js": [
+      "modules/main/main.ec816cfcd5fa8f21eb24.min.js"
+    ]
+  },
+}', true);
+```
+
+
 
 
 
