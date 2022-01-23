@@ -10,7 +10,7 @@ import defaultConfig, {
 import {
   WebpackModuleRules, WebpackPlugin,
   WebpackPluginInitializer,
-  WebpackRawConfiguration, WebpackStatsOptions, WebpackModuleLoaders
+  WebpackRawConfiguration, WebpackStatsOptions, WebpackModuleLoaders, WebpackAssetFileFormat
 } from "../../@types/webpack";
 import {cloneDeep} from 'lodash';
 import {DefinePlugin,} from "webpack";
@@ -23,8 +23,9 @@ import chalk from "chalk";
 import {Configuration} from "webpack";
 import {Static} from "webpack-dev-server";
 import * as Path from "path";
-import {BabelFile, TransformOptions} from "@babel/core";
+import {TransformOptions} from "@babel/core";
 import {BundleDeclarationsWebpackPlugin} from "bundle-declarations-webpack-plugin";
+import {WebpackCleaningAssetsKeepingBuildsPlugin} from "../webpack/plugins/webpack-cleaning-assets-keeping-builds-plugin";
 
 /**
  * A class helper to build WebPack Configuration files
@@ -94,10 +95,22 @@ export class WebpackConfigBuilder {
   private outputCleaningEnabled:boolean = false;
   
   /**
+   * Defines the number of builds which will be kept when cleaning the output directory
+   * @private
+   */
+  private cleaningKeepBuilds:number = 0;
+  
+  /**
    * Defines if webpack will generate an asset.json file containing each asset path
    * @private
    */
   private assetFileEnabled:boolean = true;
+  
+  /**
+   * Defines the format of the asset json file format
+   * @private
+   */
+  private assetFileFormat:WebpackAssetFileFormat = 'json';
   
   /**
    * Whether or not to add declaration files
@@ -120,10 +133,10 @@ export class WebpackConfigBuilder {
   private hashFilenamesEnabled:boolean = true;
   
   /**
-   * Holds the callback that prevent assets to be cleaned by Webpack
+   * Prevent assets to be cleaned by Webpack
    * @private
    */
-  private keepAssetsCB?:(fileName:string) => boolean;
+  private keepAssets:Array<string|RegExp> = [];
   
   /**
    * Holds the different webpack entries
@@ -253,21 +266,30 @@ export class WebpackConfigBuilder {
   /**
    * Enable or disable the deletion of previous webpack generated output files
    * @param enable
+   * @param keepBuilds Defines the number of built files to keep
    */
-  public enableOutputCleaning (enable:boolean):WebpackConfigBuilder {
+  public enableOutputCleaning (enable:boolean, keepBuilds:number = 0):WebpackConfigBuilder {
+    if (keepBuilds < 0)
+      throw new Error("the `keepBuilds` parameter must be superior to 0");
+    
     this.outputCleaningEnabled = enable;
+    this.cleaningKeepBuilds = keepBuilds;
+    
     return this;
   }
   
   
   /**
-   * Sets a callback used to define if an asset will be cleaned or not by webpack.
-   * If the callback return true, then the asset will NOT be deleted.
+   * Adds files to a whitelist that protect them to be cleaned by webpack
    *
-   * @param keepAssets
+   * @param files
    */
-  public setAssetCleaningWhitelist (keepAssets:(fileName:string) => boolean):WebpackConfigBuilder {
-    this.keepAssetsCB = keepAssets;
+  public addFilesToCleaningWhitelist (...files:Array<string|RegExp>):WebpackConfigBuilder {
+    if (Array.isArray(files)) {
+      this.keepAssets.push(...files);
+    } else {
+      this.keepAssets.push(files);
+    }
     
     return this;
   }
@@ -325,10 +347,15 @@ export class WebpackConfigBuilder {
   }
   
   
+  /**
+   * Enables or disable the typescript declaration file generation
+   * @param enabled
+   */
   public enableTypescriptDeclaration(enabled:boolean):WebpackConfigBuilder {
     this.enableTypeScriptDeclarations = enabled;
     return this;
   }
+  
   
   /**
    * Keeps or remove rules[].name which are handful for tests but
@@ -345,9 +372,11 @@ export class WebpackConfigBuilder {
    * Defines if webpack will generate an "asset.json" file which will contain each file
    * path in it or not
    * @param enabled
+   * @param fileFormat
    */
-  public enableAssetFile (enabled:boolean):WebpackConfigBuilder {
+  public enableAssetFile (enabled:boolean, fileFormat:WebpackAssetFileFormat = 'json'):WebpackConfigBuilder {
     this.assetFileEnabled = enabled;
+    this.assetFileFormat = fileFormat;
     return this;
   }
   
@@ -496,10 +525,13 @@ export class WebpackConfigBuilder {
    * @param entry
    */
   public addDevServerStatic ( entry: Static ) : WebpackConfigBuilder {
+    if (!this.configuration.devServer)
+      this.configuration.devServer = {};
+    
     if (!this.configuration.devServer.static)
       this.configuration.devServer.static = [];
-    
-    this.configuration.devServer!.static.push(entry);
+  
+    (this.configuration.devServer.static as Array<string|Static>).push(entry);
     
     return this;
   }
@@ -618,13 +650,28 @@ export class WebpackConfigBuilder {
     if (!this.outputCleaningEnabled)
       return this;
     
+    
     if (!this.configuration.output)
       this.configuration.output = {};
     
-    if (this.keepAssetsCB)
-      this.configuration.output.clean = {
-        keep: this.keepAssetsCB
+    // If we don't need to keep builds, we use the built-in system
+    if (this.cleaningKeepBuilds < 1) {
+      if (this.keepAssets)
+        this.configuration.output.clean = { keep: (assetName:string) =>
+            this.keepAssets.includes(assetName)
+            || this.keepAssets.filter(value => value instanceof RegExp && value.test(assetName)).length > 0
       };
+    }
+    // Else we use our custom cleaning system
+    else {
+      if (!this.configuration.plugins)
+        this.configuration.plugins = [];
+      
+     this.configuration.plugins.push(new WebpackCleaningAssetsKeepingBuildsPlugin({
+       keepBuilds: this.cleaningKeepBuilds,
+       keepFiles: this.keepAssets
+     }));
+    }
     
     return this;
   }
@@ -648,7 +695,7 @@ export class WebpackConfigBuilder {
 
     this.configuration.plugins.push(new AssetsPlugin({
       path: outputPath ? outputPath : './',
-      filename: 'assets.json',
+      filename: `assets.${this.assetFileFormat}`,
       includeAllFileTypes: true,
       entrypoints: true,
       removeFullPathAutoPrefix: true,
@@ -681,7 +728,13 @@ export class WebpackConfigBuilder {
           // }
         }
 
-        return JSON.stringify(assets, null, 2);
+        const assetsJSON = JSON.stringify(assets, null, 2);
+        
+        if (this.assetFileFormat === "json") {
+          return assetsJSON;
+        } else {
+          return `<?php $assetsContent = json_decode('${assetsJSON}', true);`;
+        }
       },
     }));
     
@@ -703,7 +756,7 @@ export class WebpackConfigBuilder {
     }
     
     // If we don't have public path set and we try to run serve to use webpack-dev-server
-    if (!this.configuration.output.publicPath && process.argv.includes('serve')) {
+    if (!this.configuration.output?.publicPath && process.argv.includes('serve')) {
       Logger.warn(`DevServer may not work as expected as you have not provided a relative path to the ${ chalk.yellow.bold('builder.setOutputPath()') } method.\n` +
       `You can provide one by using ${ chalk.yellow.bold('builder.setOutputPath({\n' +
         ' absolute: path.resolve(__dirname, \'./src/assets/dist`),\n' +
