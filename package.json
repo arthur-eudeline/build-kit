@@ -1,6 +1,6 @@
 {
   "name": "@arthur.eudeline/build-kit",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "A package that include several tools to help improve your project quality",
   "main": "dist/index.js",
   "types": "dist/lib/index.d.ts",
