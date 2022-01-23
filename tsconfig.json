@@ -1,6 +1,4 @@
 {
-  // This is an alias to @tsconfig/node12: https://github.com/tsconfig/bases
-  "extends": "ts-node/node12/tsconfig.json",
   "files" : [
     "./index.ts"
   ],

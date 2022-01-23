@@ -13,7 +13,9 @@ This module aims to help you quickly build Webpack configurations for your proje
   - [Entries](#entries)
   - [Filename hash](#filename-hash)
   - [Asset file system](#asset-file-system)
+    - [Choosing asset file format](#choosing-asset-file-format)
   - [Output Cleaning](#output-cleaning)
+    - [Keeping several builds](#keeping-several-builds)
   - [Optimization](#optimization)
   - [Webpack plugins management](#webpack-plugin-management)
     - [Add new plugins](#add-new-plugins)
@@ -24,6 +26,7 @@ This module aims to help you quickly build Webpack configurations for your proje
     - [Correctly set output path](#correctly-set-output-path)
     - [Add static entries](#add-static-entries)
     - [How to start the server](#start-the-server)
+  - [Babel Support](#babel-support)
 
 
 
@@ -169,7 +172,17 @@ To help you to deal with hashed names, you can use the `assets.json` generated f
 
 ### Asset file system
 
-The asset file generation can be very useful combined to the filename hashing system. When enabled, webpack will generate an `assets.json` file at the root of your output path. 
+The asset file generation can be very useful combined to the filename hashing system. When enabled, webpack will generate an `assets.json` file at the root of your output path. It is enabled by default, but you can change it like this :
+
+```js
+// Enable (by default) the asset file with JSON format
+WebpackConfigBuilder().enableAssetFile(true);
+
+// Disabled
+WebpackConfigBuilder().enableAssetFile(ƒalse);
+```
+
+
 
 This file will contain each generated file path that you must include on your web page. Each entry is corresponding to one of your entry point and lists all files generated for this entry. Here is an example of what this file will contain :
 
@@ -200,6 +213,52 @@ This file will contain each generated file path that you must include on your we
 
 
 
+<a name="choosing-asset-file-format"></a>
+
+#### Choosing asset file format
+
+You also have the possibility to choose the ouput format of your asset file format. For very specific cases it can be useful. For my own experience of WordPress developer, I know that some system caches can be very tricky to work with. A JSON file will be less purgeable than a PHP file which will be much easier to refresh from cache and avoid loading deleted files after the upload of new hashed files.
+
+```js
+// Enable (by default) the asset file with JSON format
+WebpackConfigBuilder().enableAssetFile(true);
+
+// Writes the asset file in PHP format
+WebpackConfigBuilder().enableAssetFile(true, 'php');
+
+// Writes the asset file in JSON format
+WebpackConfigBuilder().enableAssetFile(true, 'json');
+```
+
+If you choose to write your asset file in php, it will look like this
+
+```php
+<?php $assetsContent = json_decode('{
+  "__OUTPUT_NAME__": {
+    "css": [
+      "__CSS_FILE_1__",
+      "__CSS_FILE_2__"
+    ],
+    "js": [
+      "__JS_FILE_1__",
+      "__JS_FILE_2__"
+    ]
+  },
+  "modules/main": {
+    "css": [
+      "modules/main/main.35f447259ce880869d82.min.css"
+    ],
+    "js": [
+      "modules/main/main.ec816cfcd5fa8f21eb24.min.js"
+    ]
+  },
+}', true);
+```
+
+
+
+
+
 <a name="output-cleaning"></a>
 
 ### Output Cleaning
@@ -213,27 +272,49 @@ WebpackConfigBuilder()
 	.enableOutputCleaning(true)
 ```
 
-You can also define custom files which will not be deleted by using `.setAssetCleaningWhitelist()` method :
+You can also define custom files which will not be deleted by using `.addFilesToCleaningWhitelist()` method :
 
 ```js
 // Using a full filename
 WebpackConfigBuilder()
 	.enableOutputCleaning(true)
 	// Prevents my-file-to-preverse.json to be cleaned by webpack
-	.setAssetCleaningWhitelist( (assetName) => {
-  	return assetName.includes('my-file-to-preserve.json');
-	})
+	.addFilesToCleaningWhitelist('my-file-to-preserve.json')
 
 // Using a regex
 WebpackConfigBuilder()
 	.enableOutputCleaning(true)
 	// Prevents .json files to be cleaned by webpack
-	.setAssetCleaningWhitelist( (assetName) => {
-  	return assetName.match(/\.json$/);
-	})
+	.addFilesToCleaningWhitelist( /\.json$/ );
+
+// Or you can pass multiple parameters at one
+WebpackConfigBuilder()
+	.enableOutputCleaning(true)
+	.addFilesToCleaningWhitelist( 'my-file-to-preserve.json', /\.json$/ );
 ```
 
 > `assetName` is a string representing the asset file name
+
+
+
+<a name="keeping-several-builds"></a>
+
+#### Keeping several builds 
+
+In some cases, you will need to keep output files coming from older builds. To achieve that, you can specify the number of builds you want to keep to the `enableOutputCleaning` method. 
+
+- If you set `0`, you will only keep your current build
+- If you set `2`, you will keep your current build and the two previous ones
+
+```js
+WebpackConfigBuilder()
+	.enableOutputCleaning(true, 0) // Default
+
+WebpackConfigBuilder()
+	.enableOutputCleaning(true, 1) // Keep the last build
+```
+
+
 
 
 
@@ -483,3 +564,52 @@ npm run serve
 
 > To stop it, just hit CTRL + C in the terminal
 
+
+
+
+
+<a name="babel-support"></a>
+
+### Babel Support
+
+Babel is supported by default and a default babel configuration is included into the build kit. You can still modify and provide your own configuration from your `webpack.config.js` file :
+
+```js
+WebpackConfigBuilder()
+	// Modifiy the default configuration 
+	.setBabelOptions( (defaultOptions) => {
+ 		defaultOptions.plugins.push('@babel/plugin-transform-runtime');
+  	return defaultOptions;
+	} )
+	// Or override it with your own custom configuration
+	.setBabelOptions( (defaultOptions) => ({
+  	plugins: [ ... ],
+  	presets: [ ... ]
+	}))
+```
+
+
+
+If you want to provide your options to a Babel configuration object, you still can :
+
+1. In your `webpack.config.js` disable the default Babel options, otherwise **your Babel file will be ignored by Babel**.
+
+   ```js
+   // webpack.config.js
+   WebpackConfigBuilder()
+   	.enableDefaultBabelOptions( false ) 
+   ```
+
+2. Create a `.babelrc` file in your project's root folder :
+
+   ```jsonc
+   // .babelrc
+   {
+   	// You still can use build-kit default configuration as a preset
+   	"presets": [
+       "@arthur.eudeline/build-kit/configuration-files/babel-config"
+     ]
+   }
+   ```
+
+   

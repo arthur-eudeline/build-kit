@@ -1,14 +1,32 @@
-import {WebpackModuleRule} from "../../@types/webpack";
+import {WebpackModuleRule} from "../@types/webpack";
 import {Configuration} from "webpack";
-import {join} from "path";
-const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+import MiniCssExtractPlugin from "mini-css-extract-plugin";
+import BabelConfig from "./babel-config";
+// CSS
+// @ts-ignore
+import tailwindNesting from 'tailwindcss/nesting';
+import tailwind from 'tailwindcss';
+// import discardDuplicates from 'postcss-discard-duplicates';
+import autoPrefixer from 'autoprefixer';
+import postcssImport from 'postcss-import';
+
 
 export const defaultJavaScriptConfig:WebpackModuleRule = {
   name: 'JavaScript',
   test: /\.(ts)|(js)$/,
   use: [
     {
+      loader: 'ts-loader',
+      options: {
+        transpileOnly: true,
+        compilerOptions: {
+          declaration: true,
+        }
+      },
+    },
+    {
       loader: "babel-loader",
+      options: BabelConfig()
     },
   ],
   exclude: /node_modules/,
@@ -34,6 +52,18 @@ export const defaultCSSConfig:WebpackModuleRule = {
     },
     {
       loader: 'postcss-loader',
+      options: {
+        postcssOptions: {
+          syntax: 'postcss-scss',
+          parser: 'postcss-scss',
+          plugins: [
+            postcssImport,
+            tailwindNesting,
+            tailwind,
+            autoPrefixer,
+          ],
+        }
+      }
     },
     'sass-loader',
   ],
@@ -69,7 +99,7 @@ export const defaultImagesConfig:WebpackModuleRule = {
   }
 };
 
-const defaultConfig:Configuration = {
+const webpackConfig:Configuration = {
   // Webpack log config
   stats: {
     assets: true,
@@ -134,4 +164,4 @@ const defaultConfig:Configuration = {
   },
 };
 
-export default defaultConfig;
+export default webpackConfig;

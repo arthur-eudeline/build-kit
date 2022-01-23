@@ -6,23 +6,26 @@ import defaultConfig, {
   defaultIconsConfig,
   defaultImagesConfig,
   defaultJavaScriptConfig
-} from '../../ConfigurationFiles/Webpack/DefaultConfig';
+} from '../../configuration-files/webpack-config';
 import {
   WebpackModuleRules, WebpackPlugin,
   WebpackPluginInitializer,
-  WebpackRawConfiguration, WebpackStatsOptions
+  WebpackRawConfiguration, WebpackStatsOptions, WebpackModuleLoaders, WebpackAssetFileFormat
 } from "../../@types/webpack";
 import {cloneDeep} from 'lodash';
-import {DefinePlugin} from "webpack";
+import {DefinePlugin,} from "webpack";
 import DuplicatePackageCheckerPlugin from 'duplicate-package-checker-webpack-plugin';
 import MiniCssExtractPlugin from "mini-css-extract-plugin";
 import CssMinimizerPlugin from "css-minimizer-webpack-plugin";
 import AssetsPlugin from 'assets-webpack-plugin';
-import {Logger} from "../Common/Logger";
+import {Logger} from "../common/logger";
 import chalk from "chalk";
 import {Configuration} from "webpack";
 import {Static} from "webpack-dev-server";
 import * as Path from "path";
+import {TransformOptions} from "@babel/core";
+import {BundleDeclarationsWebpackPlugin} from "bundle-declarations-webpack-plugin";
+import {WebpackCleaningAssetsKeepingBuildsPlugin} from "../webpack/plugins/webpack-cleaning-assets-keeping-builds-plugin";
 
 /**
  * A class helper to build WebPack Configuration files
@@ -47,7 +50,7 @@ export class WebpackConfigBuilder {
    * @private
    */
   private readonly defaultPlugins:{
-    MiniCssExtractPlugin:WebpackPluginInitializer<MiniCssExtractPlugin.PluginOptions>
+    MiniCssExtractPlugin:WebpackPluginInitializer<MiniCssExtractPlugin.PluginOptions>,
     [key:string]:WebpackPluginInitializer,
   };
   
@@ -65,6 +68,12 @@ export class WebpackConfigBuilder {
    * @private
    */
   private defaultPluginsEnabled:boolean = true;
+  
+  /**
+   * Allow or disallow babel default options
+   * @private
+   */
+  private defaultBabelOptionsEnabled:boolean = true;
   
   /**
    * Whether or not to optimize assets code
@@ -86,10 +95,28 @@ export class WebpackConfigBuilder {
   private outputCleaningEnabled:boolean = false;
   
   /**
+   * Defines the number of builds which will be kept when cleaning the output directory
+   * @private
+   */
+  private cleaningKeepBuilds:number = 0;
+  
+  /**
    * Defines if webpack will generate an asset.json file containing each asset path
    * @private
    */
   private assetFileEnabled:boolean = true;
+  
+  /**
+   * Defines the format of the asset json file format
+   * @private
+   */
+  private assetFileFormat:WebpackAssetFileFormat = 'json';
+  
+  /**
+   * Whether or not to add declaration files
+   * @private
+   */
+  private enableTypeScriptDeclarations:boolean = true;
   
   /**
    * Holds the custom plugins later added to the configuration by the user
@@ -97,7 +124,6 @@ export class WebpackConfigBuilder {
    * @private
    */
   private readonly plugins:WebpackPluginInitializer[] = [];
-  
   
   /**
    * Defines if filenames will have a unique hash in their name or not
@@ -107,10 +133,16 @@ export class WebpackConfigBuilder {
   private hashFilenamesEnabled:boolean = true;
   
   /**
-   * Holds the callback that prevent assets to be cleaned by Webpack
+   * Prevent assets to be cleaned by Webpack
    * @private
    */
-  private keepAssetsCB?:(fileName:string) => boolean;
+  private keepAssets:Array<string|RegExp> = [];
+  
+  /**
+   * Holds the different webpack entries
+   * @private
+   */
+  private readonly entries:{inputPath:string, outputName:string}[] = [];
   
   
   /**
@@ -140,6 +172,22 @@ export class WebpackConfigBuilder {
         },
         init: (options:MiniCssExtractPlugin.PluginOptions) => new MiniCssExtractPlugin(options),
       } as WebpackPluginInitializer<MiniCssExtractPlugin.PluginOptions>,
+      
+      // Allow TypeScript declaration files generation
+      BundleDeclarationWebpackPlugin: {
+        init: () => {
+          const output = [];
+
+          for (const entry of this.entries) {
+            output.push(new BundleDeclarationsWebpackPlugin({
+              entry: entry.inputPath,
+              outFile: entry.outputName + ".d.ts",
+            }));
+          }
+
+          return output;
+        },
+      },
     };
   }
   
@@ -163,6 +211,8 @@ export class WebpackConfigBuilder {
   
   
     (this.configuration.entry as Record<string, string>)[outputName] = inputPath;
+    
+    this.entries.push({inputPath, outputName});
     
     return this;
   }
@@ -216,22 +266,71 @@ export class WebpackConfigBuilder {
   /**
    * Enable or disable the deletion of previous webpack generated output files
    * @param enable
+   * @param keepBuilds Defines the number of built files to keep
    */
-  public enableOutputCleaning (enable:boolean):WebpackConfigBuilder {
+  public enableOutputCleaning (enable:boolean, keepBuilds:number = 0):WebpackConfigBuilder {
+    if (keepBuilds < 0)
+      throw new Error("the `keepBuilds` parameter must be superior to 0");
+    
     this.outputCleaningEnabled = enable;
+    this.cleaningKeepBuilds = keepBuilds;
+    
     return this;
   }
   
   
   /**
-   * Sets a callback used to define if an asset will be cleaned or not by webpack.
-   * If the callback return true, then the asset will NOT be deleted.
+   * Adds files to a whitelist that protect them to be cleaned by webpack
    *
-   * @param keepAssets
+   * @param files
    */
-  public setAssetCleaningWhitelist (keepAssets:(fileName:string) => boolean):WebpackConfigBuilder {
-    this.keepAssetsCB = keepAssets;
+  public addFilesToCleaningWhitelist (...files:Array<string|RegExp>):WebpackConfigBuilder {
+    if (Array.isArray(files)) {
+      this.keepAssets.push(...files);
+    } else {
+      this.keepAssets.push(files);
+    }
     
+    return this;
+  }
+  
+  
+  /**
+   * Allow to modify the babel loader options
+   * @param setter
+   */
+  public setBabelOptions ( setter:((options:TransformOptions) => TransformOptions) ) : WebpackConfigBuilder {
+    const babelRulesSet: WebpackModuleLoaders = (this.moduleRules.javaScript.use as WebpackModuleLoaders[]).filter(loaderOptions => loaderOptions.loader === 'babel-loader')[0];
+    
+    // Throw an error if we don't find the babel rules set
+    if (
+      !this.moduleRules.javaScript.use
+      || babelRulesSet === undefined
+      || !Array.isArray(this.moduleRules.javaScript.use)
+      || typeof babelRulesSet !== 'object'
+      || babelRulesSet.loader !== 'babel-loader'
+    ) {
+      Logger.error(`The ${ chalk.yellow.bold('Babel Loader') } cannot be found into the JavaScript file rules. Here is what has been found instead :
+      ${ this.moduleRules.javaScript.rules }`);
+      process.exit(1);
+      return this;
+    }
+  
+    (this.moduleRules.javaScript.use![0] as WebpackModuleLoaders).options = setter(babelRulesSet.options as TransformOptions);
+    return this;
+  }
+  
+  
+  /**
+   * Enable or disable the use of default BabelOptions.
+   * If enabled, you can ONLY modify your babel options from webpack.config.js as any babel file will be ignored by webpack.
+   * You must disable options to add your own babel file. You can still use default babel options as a preset as shown in the docs
+   *
+   * @see https://github.com/arthur-eudeline/build-kit/blob/master/docs/webpack-config-builder.md#babel-support
+   * @param enabled
+   */
+  public enableDefaultBabelOptions(enabled: boolean) : WebpackConfigBuilder {
+    this.defaultBabelOptionsEnabled = enabled;
     return this;
   }
   
@@ -244,6 +343,16 @@ export class WebpackConfigBuilder {
   public enableFilenamesHash (enabled:boolean):WebpackConfigBuilder {
     this.hashFilenamesEnabled = enabled;
     
+    return this;
+  }
+  
+  
+  /**
+   * Enables or disable the typescript declaration file generation
+   * @param enabled
+   */
+  public enableTypescriptDeclaration(enabled:boolean):WebpackConfigBuilder {
+    this.enableTypeScriptDeclarations = enabled;
     return this;
   }
   
@@ -263,9 +372,11 @@ export class WebpackConfigBuilder {
    * Defines if webpack will generate an "asset.json" file which will contain each file
    * path in it or not
    * @param enabled
+   * @param fileFormat
    */
-  public enableAssetFile (enabled:boolean):WebpackConfigBuilder {
+  public enableAssetFile (enabled:boolean, fileFormat:WebpackAssetFileFormat = 'json'):WebpackConfigBuilder {
     this.assetFileEnabled = enabled;
+    this.assetFileFormat = fileFormat;
     return this;
   }
   
@@ -414,13 +525,17 @@ export class WebpackConfigBuilder {
    * @param entry
    */
   public addDevServerStatic ( entry: Static ) : WebpackConfigBuilder {
+    if (!this.configuration.devServer)
+      this.configuration.devServer = {};
+    
     if (!this.configuration.devServer.static)
       this.configuration.devServer.static = [];
-    
-    this.configuration.devServer!.static.push(entry);
+  
+    (this.configuration.devServer.static as Array<string|Static>).push(entry);
     
     return this;
   }
+  
   
   /**
    * Applies all the module rules to the real webpack configuration
@@ -429,10 +544,22 @@ export class WebpackConfigBuilder {
   private applyModulesRules ():WebpackConfigBuilder {
     const rules =  Object.values(cloneDeep(this.getModulesRules()));
     
-    // Remove name property which is not valid for webpack
-    if (!this.debugRulesNamesEnabled)
       rules.map((value) => {
-        delete value.name;
+        if (value.name === 'JavaScript') {
+          // Remove options from the babel loader if we don't want default rules
+          if ( !this.defaultBabelOptionsEnabled )
+            delete (value.use as Array<WebpackModuleLoaders>).filter((rule) => rule.loader === "babel-loader")[0]!.options;
+  
+          if ( !this.enableTypeScriptDeclarations ) {
+            // Remove TS Loader to generate declarations file
+            value.use = (value.use as Array<WebpackModuleLoaders>).filter((rule) => rule.loader !== "ts-loader");
+          }
+        }
+        
+        // Remove name property which is not valid for webpack
+        if (!this.debugRulesNamesEnabled)
+          delete value.name;
+        
         return value;
       });
     
@@ -448,6 +575,9 @@ export class WebpackConfigBuilder {
    * @private
    */
   private applyPlugins ():WebpackConfigBuilder {
+    if (!this.enableTypeScriptDeclarations)
+      delete this.defaultPlugins.BundleDeclarationWebpackPlugin;
+    
     // Merge default plugins if they are enabled with user provided plugins
     const plugins:WebpackPluginInitializer[] = [
       ...(this.defaultPluginsEnabled ? Object.values(this.defaultPlugins) : []),
@@ -459,7 +589,14 @@ export class WebpackConfigBuilder {
     
     // Initialize each plugin
     for (const initializer of plugins) {
-      this.configuration.plugins.push(initializer.init(initializer.options));
+      const initialized = initializer.init(initializer.options);
+      if (Array.isArray(initialized)) {
+        for (const single of initialized) {
+          this.configuration.plugins.push(single)
+        }
+      } else {
+        this.configuration.plugins.push(initialized);
+      }
     }
     
     // Add environment values if some has been added
@@ -513,13 +650,28 @@ export class WebpackConfigBuilder {
     if (!this.outputCleaningEnabled)
       return this;
     
+    
     if (!this.configuration.output)
       this.configuration.output = {};
     
-    if (this.keepAssetsCB)
-      this.configuration.output.clean = {
-        keep: this.keepAssetsCB
+    // If we don't need to keep builds, we use the built-in system
+    if (this.cleaningKeepBuilds < 1) {
+      if (this.keepAssets)
+        this.configuration.output.clean = { keep: (assetName:string) =>
+            this.keepAssets.includes(assetName)
+            || this.keepAssets.filter(value => value instanceof RegExp && value.test(assetName)).length > 0
       };
+    }
+    // Else we use our custom cleaning system
+    else {
+      if (!this.configuration.plugins)
+        this.configuration.plugins = [];
+      
+     this.configuration.plugins.push(new WebpackCleaningAssetsKeepingBuildsPlugin({
+       keepBuilds: this.cleaningKeepBuilds,
+       keepFiles: this.keepAssets
+     }));
+    }
     
     return this;
   }
@@ -543,7 +695,7 @@ export class WebpackConfigBuilder {
 
     this.configuration.plugins.push(new AssetsPlugin({
       path: outputPath ? outputPath : './',
-      filename: 'assets.json',
+      filename: `assets.${this.assetFileFormat}`,
       includeAllFileTypes: true,
       entrypoints: true,
       removeFullPathAutoPrefix: true,
@@ -576,7 +728,13 @@ export class WebpackConfigBuilder {
           // }
         }
 
-        return JSON.stringify(assets, null, 2);
+        const assetsJSON = JSON.stringify(assets, null, 2);
+        
+        if (this.assetFileFormat === "json") {
+          return assetsJSON;
+        } else {
+          return `<?php $assetsContent = json_decode('${assetsJSON}', true);`;
+        }
       },
     }));
     
@@ -598,7 +756,7 @@ export class WebpackConfigBuilder {
     }
     
     // If we don't have public path set and we try to run serve to use webpack-dev-server
-    if (!this.configuration.output.publicPath && process.argv.includes('serve')) {
+    if (!this.configuration.output?.publicPath && process.argv.includes('serve')) {
       Logger.warn(`DevServer may not work as expected as you have not provided a relative path to the ${ chalk.yellow.bold('builder.setOutputPath()') } method.\n` +
       `You can provide one by using ${ chalk.yellow.bold('builder.setOutputPath({\n' +
         ' absolute: path.resolve(__dirname, \'./src/assets/dist`),\n' +
