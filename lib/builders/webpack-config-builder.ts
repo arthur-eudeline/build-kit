@@ -18,7 +18,7 @@ import DuplicatePackageCheckerPlugin from 'duplicate-package-checker-webpack-plu
 import MiniCssExtractPlugin from "mini-css-extract-plugin";
 import CssMinimizerPlugin from "css-minimizer-webpack-plugin";
 import AssetsPlugin from 'assets-webpack-plugin';
-import {Logger} from "../Common/Logger";
+import {Logger} from "../common/logger";
 import chalk from "chalk";
 import {Configuration} from "webpack";
 import {Static} from "webpack-dev-server";
